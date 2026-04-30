@@ -32,7 +32,7 @@ $required_schema = [
     'products' => ['brand', 'compatible_models', 'quality', 'low_stock_threshold'],
     'stock_inflow' => ['user_id', 'supplier_phone'],
     'sales_transactions' => ['id', 'customer_id', 'total_cart_value', 'total_paid'],
-    'stock_outflow' => ['transaction_id', 'user_id', 'customer_id', 'amount_paid'],
+    'stock_outflow' => ['transaction_id', 'user_id', 'customer_id', 'amount_paid', 'cost_price'],
     'stock_returns' => ['id', 'product_id', 'customer_id', 'refund_amount'],
     'repairs' => ['id', 'product_id', 'customer_phone', 'status', 'estimated_cost', 'amount_paid'],
     'system_audit_log' => ['id', 'user_id', 'action', 'details']
@@ -130,6 +130,7 @@ foreach ($required_schema as $table => $columns) {
             elseif ($col == 'brand') $fix_sql .= "VARCHAR(80) AFTER name; ";
             elseif ($col == 'compatible_models') $fix_sql .= "TEXT AFTER brand; ";
             elseif ($col == 'quality') $fix_sql .= "VARCHAR(50) DEFAULT 'Original' AFTER category; ";
+            elseif ($col == 'cost_price' && $table == 'stock_outflow') $fix_sql .= "DECIMAL(12,2) DEFAULT 0.00 AFTER quantity; ";
             elseif ($col == 'product_id') $fix_sql .= "INT DEFAULT NULL AFTER id; ";
             elseif ($col == 'customer_phone') $fix_sql .= "VARCHAR(20) AFTER customer_name; ";
             elseif ($col == 'low_stock_threshold') $fix_sql .= "INT DEFAULT 3 AFTER cost_price; ";

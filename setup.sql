@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS stock_outflow (
   product_id INT NOT NULL,
   user_id INT NOT NULL,
   quantity INT NOT NULL,
+  cost_price DECIMAL(12,2) DEFAULT 0.00,
   price_per_unit DECIMAL(12,2) DEFAULT 0.00,
   total_amount DECIMAL(12,2) DEFAULT 0.00,
   amount_paid DECIMAL(12,2) DEFAULT 0.00,

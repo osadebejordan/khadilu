@@ -98,9 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $transaction_id = $conn->insert_id;
 
             $remaining_payment = $total_paid;
-            $stmt = $conn->prepare("INSERT INTO stock_outflow (transaction_id, product_id, user_id, customer_id, quantity, price_per_unit, total_amount, amount_paid, customer_name, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt = $conn->prepare("INSERT INTO stock_outflow (transaction_id, product_id, user_id, customer_id, quantity, cost_price, price_per_unit, total_amount, amount_paid, customer_name, payment_method, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             $upd = $conn->prepare("UPDATE products SET current_stock = current_stock - ?, updated_at = NOW() WHERE id = ?");
-            $check = $conn->prepare("SELECT current_stock, name FROM products WHERE id = ?");
+            $check = $conn->prepare("SELECT current_stock, name, cost_price FROM products WHERE id = ?");
 
             foreach ($cart as $item) {
                 $product_id = intval($item['id']);
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $remaining_payment -= $applied_payment;
 
                 // Record Outflow
-                $stmt->bind_param("iiiiidddsss", $transaction_id, $product_id, $uid, $customer_id, $qty, $price, $item_total, $applied_payment, $customer, $payment, $notes);
+                $stmt->bind_param("iiiiiddddsss", $transaction_id, $product_id, $uid, $customer_id, $qty, $p['cost_price'], $price, $item_total, $applied_payment, $customer, $payment, $notes);
                 if (!$stmt->execute()) {
                     throw new Exception("Could not record sale: " . $stmt->error);
                 }

@@ -16,7 +16,7 @@ $from_dt = $from . ' 00:00:00';
 $to_dt   = $to   . ' 23:59:59';
 
 // Summary stats for date range
-$s_stmt = $conn->prepare("SELECT COUNT(*) AS cnt, SUM(total_amount) AS rev, SUM(quantity) AS units FROM stock_outflow WHERE created_at BETWEEN ? AND ?");
+$s_stmt = $conn->prepare("SELECT COUNT(*) AS cnt, SUM(total_amount) AS rev, SUM(quantity * cost_price) AS cogs, SUM(quantity) AS units FROM stock_outflow WHERE created_at BETWEEN ? AND ?");
 $s_stmt->bind_param("ss", $from_dt, $to_dt);
 $s_stmt->execute();
 $sales_stats = $s_stmt->get_result()->fetch_assoc();
@@ -37,7 +37,7 @@ $r_stmt->execute();
 $return_stats = $r_stmt->get_result()->fetch_assoc();
 
 // Profit = Sales + Repair Income - Stock Purchases - Refunds/Credits issued
-$gross_profit = ($sales_stats['rev'] ?? 0) + ($repair_stats['rev'] ?? 0) - ($inflow_stats['spent'] ?? 0) - ($return_stats['refunded'] ?? 0);
+$gross_profit = ($sales_stats['rev'] ?? 0) + ($repair_stats['rev'] ?? 0) - ($sales_stats['cogs'] ?? 0) - ($return_stats['refunded'] ?? 0);
 
 // Optimized Transaction List with UNION
 $queries = [];
