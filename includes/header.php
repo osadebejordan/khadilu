@@ -99,6 +99,13 @@ $out_of_stock_count = ($out_of_stock_q) ? ($out_of_stock_q->fetch_assoc()['cnt']
     </li>
     <?php if (isAdmin()): ?>
     <li>
+      <a href="closing_report.php" class="nav-link <?= $current_page === 'closing_report' ? 'active' : '' ?>">
+        Daily Closing
+      </a>
+    </li>
+    <?php endif; ?>
+    <?php if (isAdmin()): ?>
+    <li>
       <a href="attributes.php" class="nav-link <?= $current_page === 'attributes' ? 'active' : '' ?>">
         Product Attributes
       </a>
