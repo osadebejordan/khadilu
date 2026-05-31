@@ -27,15 +27,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_fix'])) {
 
 // Define the "Gold Standard" columns that must exist for the code to work
 $required_schema = [
-    'users' => ['role'],
+    'users' => ['role', 'permissions'],
     'customers' => ['type'],
     'products' => ['brand', 'compatible_models', 'quality', 'low_stock_threshold'],
     'stock_inflow' => ['user_id', 'supplier_phone'],
     'sales_transactions' => ['id', 'customer_id', 'total_cart_value', 'total_paid'],
     'stock_outflow' => ['transaction_id', 'user_id', 'customer_id', 'amount_paid', 'cost_price'],
-    'stock_returns' => ['id', 'product_id', 'customer_id', 'refund_amount'],
-    'repairs' => ['id', 'product_id', 'customer_phone', 'status', 'estimated_cost', 'amount_paid'],
-    'system_audit_log' => ['id', 'user_id', 'action', 'details']
+    'stock_returns' => ['id', 'product_id', 'customer_id', 'outflow_id', 'refund_amount', 'status'],
+    'repairs' => ['id', 'customer_id', 'product_id', 'customer_phone', 'status', 'category', 'estimated_cost', 'amount_paid'],
+    'customer_payments' => ['id', 'customer_id', 'user_id', 'amount', 'payment_method'],
+    'system_audit_log' => ['id', 'user_id', 'action', 'details'],
+    'categories' => ['id', 'name'],
+    'qualities' => ['id', 'name', 'category_name']
  ];
 
 echo "<div class='card' style='padding:20px;'>";
@@ -58,10 +61,12 @@ foreach ($required_schema as $table => $columns) {
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 product_id INT NOT NULL,
                 customer_id INT DEFAULT NULL,
+                outflow_id INT DEFAULT NULL,
                 user_id INT NOT NULL,
                 quantity INT NOT NULL,
                 refund_amount DECIMAL(12,2) DEFAULT 0.00,
                 notes TEXT,
+                status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
             ); ";
@@ -112,6 +117,18 @@ foreach ($required_schema as $table => $columns) {
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             ); ";
         }
+        elseif ($table === 'customer_payments') {
+            $fix_sql .= "CREATE TABLE customer_payments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT NOT NULL,
+                user_id INT NOT NULL,
+                amount DECIMAL(12,2) NOT NULL,
+                payment_method ENUM('Cash', 'POS', 'Transfer', 'Other') DEFAULT 'Cash',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+            ); ";
+        }
         continue;
     }
 
@@ -123,15 +140,20 @@ foreach ($required_schema as $table => $columns) {
             
             // Generate the fix
             $fix_sql .= "ALTER TABLE `$table` ADD COLUMN `$col` ";
-            if ($col == 'role') $fix_sql .= "ENUM('admin', 'staff') DEFAULT 'staff' AFTER password; ";
+            if ($col == 'role') $fix_sql .= "ENUM('admin', 'staff', 'sub-admin') DEFAULT 'staff' AFTER password; ";
+            elseif ($col == 'permissions') $fix_sql .= "TEXT DEFAULT NULL AFTER role; ";
             elseif ($col == 'user_id') $fix_sql .= "INT NOT NULL AFTER product_id; ";
             elseif ($col == 'amount_paid') $fix_sql .= "DECIMAL(12,2) DEFAULT 0.00 AFTER total_amount; ";
             elseif ($col == 'customer_id') $fix_sql .= "INT DEFAULT NULL AFTER user_id; ";
             elseif ($col == 'brand') $fix_sql .= "VARCHAR(80) AFTER name; ";
             elseif ($col == 'compatible_models') $fix_sql .= "TEXT AFTER brand; ";
             elseif ($col == 'quality') $fix_sql .= "VARCHAR(50) DEFAULT 'Original' AFTER category; ";
+            elseif ($col == 'outflow_id' && $table == 'stock_returns') $fix_sql .= "INT DEFAULT NULL AFTER customer_id; ";
+            elseif ($col == 'status' && $table == 'stock_returns') $fix_sql .= "ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending' AFTER notes; ";
+            elseif ($col == 'category_name' && $table == 'qualities') $fix_sql .= "VARCHAR(100) DEFAULT NULL AFTER name; ";
             elseif ($col == 'cost_price' && $table == 'stock_outflow') $fix_sql .= "DECIMAL(12,2) DEFAULT 0.00 AFTER quantity; ";
             elseif ($col == 'product_id') $fix_sql .= "INT DEFAULT NULL AFTER id; ";
+            elseif ($col == 'category' && $table == 'repairs') $fix_sql .= "VARCHAR(100) AFTER device_model; ";
             elseif ($col == 'customer_phone') $fix_sql .= "VARCHAR(20) AFTER customer_name; ";
             elseif ($col == 'low_stock_threshold') $fix_sql .= "INT DEFAULT 3 AFTER cost_price; ";
             elseif ($col == 'type') $fix_sql .= "ENUM('Retail', 'Repair', 'Both') DEFAULT 'Retail' AFTER phone; ";
@@ -152,6 +174,14 @@ foreach ($required_schema as $table => $columns) {
     echo "</div>";
 }
 
+// --- Specific Check for Sub-Admin Role ENUM ---
+$role_info = $conn->query("SHOW COLUMNS FROM users LIKE 'role'")->fetch_assoc();
+if ($role_info && strpos($role_info['Type'], 'sub-admin') === false) {
+    echo "<div style='margin-bottom:15px;'><span class='red-text'>❌ Role ENUM is outdated (missing 'sub-admin')</span><br></div>";
+    $missing_anything = true;
+    $fix_sql .= "ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'staff', 'sub-admin') DEFAULT 'staff'; ";
+}
+
 // --- Check for the View ---
 echo "<div style='margin-bottom:15px;'><strong>System View: view_customer_balances</strong><br>";
 $view_check = $conn->query("SHOW FULL TABLES WHERE Table_type = 'VIEW' AND Tables_in_" . DB_NAME . " = 'view_customer_balances'");
@@ -165,7 +195,7 @@ if ($view_check->num_rows == 0) {
             (SELECT IFNULL(SUM(total_amount - amount_paid), 0) FROM stock_outflow WHERE customer_id = c.id) + 
             (SELECT IFNULL(SUM(estimated_cost), 0) FROM repairs WHERE customer_id = c.id) - 
             (SELECT IFNULL(SUM(amount), 0) FROM customer_payments WHERE customer_id = c.id) -
-            (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id)
+            (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id AND status = 'Approved')
         ) AS balance
     FROM customers c; ";
 } else {
@@ -178,7 +208,7 @@ if ($missing_anything) {
     echo "<pre style='background:#000; padding:15px; margin-top:10px; color:#00d4aa; overflow-x:auto;'>$fix_sql</pre>";
     echo "<form method='POST' style='margin-top:15px;'>";
     echo "<input type='hidden' name='sql_to_run' value='".htmlspecialchars($fix_sql)."'>";
-    echo "<button type='submit' name='apply_fix' class='btn btn-primary'>Apply Fixes Automatically →</button>";
+    echo "<button type='submit' name='apply_fix' class='btn btn-primary'>Apply Fixes Automatically</button>";
     echo "</form>";
     echo "</div>";
 } else {

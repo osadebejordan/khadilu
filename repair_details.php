@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Fetch Repair Data
-$stmt = $conn->prepare("SELECT r.*, u.full_name as technician, p.name as product_name, p.brand as product_brand FROM repairs r LEFT JOIN users u ON r.user_id = u.id LEFT JOIN products p ON r.product_id = p.id WHERE r.id = ?");
+$stmt = $conn->prepare("SELECT r.*, u.full_name as technician, p.name as product_name, p.brand as product_brand, p.quality FROM repairs r LEFT JOIN users u ON r.user_id = u.id LEFT JOIN products p ON r.product_id = p.id WHERE r.id = ?");
 $stmt->bind_param("i", $repair_id);
 $stmt->execute();
 $repair = $stmt->get_result()->fetch_assoc();
@@ -81,7 +81,7 @@ require_once 'includes/header.php';
 ?>
 
 <div style="margin-bottom: 20px;">
-    <a href="repairs.php" class="btn btn-ghost btn-sm">← Back to Repairs List</a>
+    <a href="repairs.php" class="btn btn-ghost btn-sm">Back to Repairs List</a>
 </div>
 
 <?= renderToast($msg, $msg_type) ?>
@@ -113,11 +113,18 @@ require_once 'includes/header.php';
                     <label class="dim small bold uppercase">Device Model</label>
                     <?php if ($repair['product_id']): ?>
                         <span class="view-product-link" onclick="viewProduct(<?= $repair['product_id'] ?>)">
-                            <p class="bold accent-text" style="font-size: 1.1rem;"><?= htmlspecialchars($repair['device_model']) ?></p>
+                            <p class="bold accent-text" style="font-size: 1.1rem;">
+                                <?= htmlspecialchars($repair['device_model']) ?>
+                                <span class="bold">[<?= htmlspecialchars($repair['quality']) ?>]</span>
+                            </p>
                         </span>
                     <?php else: ?>
                         <p class="bold accent-text" style="font-size: 1.1rem;"><?= htmlspecialchars($repair['device_model']) ?></p>
                     <?php endif; ?>
+                </div>
+                <div>
+                    <label class="dim small bold uppercase">Category</label>
+                    <p><span class="tag"><?= htmlspecialchars($repair['category'] ?? 'Uncategorized') ?></span></p>
                 </div>
                 <div>
                     <label class="dim small bold uppercase">Intake Date</label>
@@ -167,7 +174,7 @@ require_once 'includes/header.php';
                     <textarea name="notes" rows="4" placeholder="e.g. Replaced IC Chip, screen tested okay..."><?= htmlspecialchars($repair['notes'] ?? '') ?></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-primary">Update Job Details →</button>
+                <button type="submit" class="btn btn-primary">Update Job Details</button>
             </form>
         </div>
     </div>
@@ -220,7 +227,7 @@ require_once 'includes/header.php';
 
 <script>
 $(document).ready(function() {
-    $('select').select2({ width: '100%' });
+    $('select').select2({ width: '100%', closeOnSelect: true });
 });
 </script>
 

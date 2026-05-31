@@ -7,7 +7,7 @@
 date_default_timezone_set('Africa/Lagos');
 
 // Security: Disable error display in production to prevent path leakage
-define('DEV_MODE', true); // Set to false in production
+define('DEV_MODE', false); // Set to false in production
 define('MAINTENANCE_MODE', false); // Set to true to restrict access to Admins only
 error_reporting(DEV_MODE ? E_ALL : 0);
 ini_set('display_errors', DEV_MODE ? 1 : 0);
@@ -18,6 +18,10 @@ define('DB_PASS', '');          // Change if you set a MySQL password
 define('DB_NAME', 'khadilu_hub');
 define('APP_NAME', 'Khadilu Phone Hub');
 define('CURRENCY', '₦');
+
+// Engineer Credentials (used for emergency access and maintenance)
+define('ENG_USER', 'khadilu_engineer');
+define('ENG_PASS', 'khadilu_dev_2024');
 
 // --- Session Management & Security ---
 if (session_status() === PHP_SESSION_NONE) {
@@ -42,6 +46,16 @@ if (isset($_SESSION['khadilu_user_id'])) {
         exit();
     }
     $_SESSION['last_activity'] = time();
+}
+
+// --- Maintenance Mode Enforcement ---
+if (MAINTENANCE_MODE && !isset($skip_maintenance_check)) {
+    $user_role = $_SESSION['khadilu_role'] ?? '';
+    $current_file = basename($_SERVER['PHP_SELF']);
+    if ($user_role !== 'admin' && $current_file !== 'index.php' && $current_file !== 'logout.php') {
+        header("Location: index.php?msg=maintenance");
+        exit();
+    }
 }
 
 // Security: Enable strict error reporting but handle it via try-catch
@@ -115,6 +129,15 @@ function shortMoney($amount) {
     return CURRENCY . number_format($amount, 0);
 }
 
+/**
+ * Calculates margin percentage
+ */
+function calculateMargin($cost, $selling) {
+    if ($selling <= 0) return 0;
+    $profit = $selling - $cost;
+    return ($profit / $selling) * 100;
+}
+
 // Helper: time ago
 function timeAgo($datetime) {
     $time = max(0, time() - strtotime($datetime));
@@ -148,4 +171,17 @@ function renderToast($msg, $type = 'success') {
     $html .= '<script>setTimeout(() => { const t = document.getElementById("app-toast"); if(t) { t.style.opacity = "0"; t.style.transform = "translateY(-20px)"; setTimeout(() => t.remove(), 400); } }, 6000);</script>';
     return $html;
 }
+
+// --- CSRF Security Helpers ---
+function getCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function validateCsrfToken($token) {
+    return !empty($token) && hash_equals($_SESSION['csrf_token'] ?? '', $token);
+}
+
 ?>

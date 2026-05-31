@@ -39,7 +39,7 @@ $recent = $conn->query("
 
 // Recent inflow
 $recent_in = $conn->query("
-  SELECT i.created_at, i.quantity, i.total_cost, i.supplier, p.name AS product_name, p.brand, p.id as product_id
+  SELECT i.created_at, i.quantity, i.total_cost, i.supplier, p.name AS product_name, p.brand, p.quality, p.id as product_id
   FROM stock_inflow i JOIN products p ON i.product_id = p.id
   ORDER BY i.created_at DESC LIMIT 4
 ")->fetch_all(MYSQLI_ASSOC);
@@ -84,28 +84,28 @@ if ($out_of_stock > 0) {
 
 <div class="stats-grid">
   <?php if (isAdmin()): ?>
-  <div class="stat-card accent">
+  <a href="history.php?type=sales" class="stat-card accent" style="text-decoration:none;">
     <div class="stat-label">Today's Gross</div>
     <div class="stat-value" title="<?= money($today_revenue) ?>"><?= shortMoney($today_revenue) ?></div>
     <div class="stat-sub"><?= $today_txn ?> sale<?= $today_txn != 1 ? 's' : '' ?> today</div>
-  </div>
-  <div class="stat-card">
+  </a>
+  <a href="closing_report.php" class="stat-card" style="text-decoration:none;">
     <div class="stat-label">Monthly Volume</div>
     <div class="stat-value" title="<?= money($month_sales) ?>"><?= shortMoney($month_sales) ?></div>
     <div class="stat-sub"><?= date('F Y') ?></div>
-  </div>
+  </a>
   <?php endif; ?>
   <?php if (isAdmin()): ?>
-  <div class="stat-card">
-    <div class="stat-label">Inventory Value</div>
+  <a href="inventory.php" class="stat-card" style="text-decoration:none;">
+    <div class="stat-label">Stock Value</div>
     <div class="stat-value" title="<?= money($inv_value) ?>"><?= shortMoney($inv_value) ?></div>
     <div class="stat-sub"><?= number_format($total_stock) ?> units in stock</div>
-  </div>
-  <div class="stat-card danger">
+  </a>
+  <a href="customers.php?filter=debt" class="stat-card danger" style="text-decoration:none;">
     <div class="stat-label">Total Debt</div>
     <div class="stat-value" title="<?= money($total_debt) ?>"><?= shortMoney($total_debt) ?></div>
-    <div class="stat-sub">Outstanding · <a href="customers.php?filter=debt" class="bold underline" style="color: inherit;">View Debtors</a></div>
-  </div>
+    <div class="stat-sub">Outstanding Amount</div>
+  </a>
   <?php endif; ?>
   <div class="stat-card <?= $ready_repairs > 0 ? 'accent' : '' ?>">
     <div class="stat-label">Ready Repairs</div>
@@ -133,7 +133,7 @@ if ($out_of_stock > 0) {
   </div>
   <!-- Recent Sales -->
   <div class="card">
-    <div class="card-header">
+    <div class="card-header" style="background: rgba(255,255,255,0.02)">
       <h3>Recent Sales</h3>
       <a href="record_sale.php" class="btn btn-sm btn-ghost">New Sale</a>
     </div>
@@ -152,7 +152,7 @@ if ($out_of_stock > 0) {
               <span class="view-product-link" onclick="viewProduct(<?= $r['product_id'] ?>)">
                 <?= htmlspecialchars($r['product_name']) ?>
               </span>
-              <span class="dim small" style="font-weight:normal">[<?= htmlspecialchars($r['quality']) ?>]</span>
+              <span class="bold">[<?= htmlspecialchars($r['quality']) ?>]</span>
             </td>
             <td><span class="pill pill-red">–<?= $r['quantity'] ?></span></td>
             <?php if (isAdmin()): ?>
@@ -181,7 +181,10 @@ if ($out_of_stock > 0) {
       <?php foreach ($low_stock_list as $item): ?>
       <div class="alert-row <?= $item['current_stock'] == 0 ? 'out' : 'low' ?>">
         <div class="alert-info">
-          <div class="alert-name"><?= htmlspecialchars($item['name']) ?></div>
+          <div class="alert-name">
+              <?= htmlspecialchars($item['name']) ?>
+              <span class="bold">[<?= htmlspecialchars($item['quality']) ?>]</span>
+          </div>
           <div class="alert-brand"><?= htmlspecialchars($item['brand'] ?? '—') ?></div>
         </div>
         <div class="alert-stock">
@@ -189,7 +192,9 @@ if ($out_of_stock > 0) {
             <?= $item['current_stock'] == 0 ? 'OUT' : $item['current_stock'] . ' left' ?>
           </span>
         </div>
-        <a href="add_stock.php?product_id=<?= $item['id'] ?>" class="btn btn-xs btn-outline">Restock</a>
+        <?php if (isAdmin()): ?>
+        <a href="bulk_stock.php?product_id=<?= $item['id'] ?>" class="btn btn-xs btn-outline">Restock</a>
+        <?php endif; ?>
       </div>
       <?php endforeach; ?>
     </div>
@@ -198,7 +203,9 @@ if ($out_of_stock > 0) {
     <div class="card-divider"></div>
     <div class="card-header">
       <h3>Recent Inflow</h3>
-      <a href="add_stock.php" class="btn btn-sm btn-ghost">Add Stock</a>
+      <?php if (isAdmin()): ?>
+      <a href="bulk_stock.php" class="btn btn-sm btn-ghost">Add Stock</a>
+      <?php endif; ?>
     </div>
     <?php if (empty($recent_in)): ?>
       <div class="empty-state">No stock added yet.</div>
@@ -207,7 +214,7 @@ if ($out_of_stock > 0) {
     <div class="inflow-row">
       <div class="inflow-info">
         <div class="inflow-name view-product-link" onclick="viewProduct(<?= $r['product_id'] ?>)">
-          <?= htmlspecialchars($r['product_name']) ?>
+          <?= htmlspecialchars($r['product_name']) ?> <span class="bold">[<?= htmlspecialchars($r['quality']) ?>]</span>
         </div>
         <div class="bold small accent-text"><?= htmlspecialchars($r['brand'] ?? '—') ?></div>
         <div class="dim small"><?= htmlspecialchars($r['supplier']) ?> · <?= timeAgo($r['created_at']) ?></div>

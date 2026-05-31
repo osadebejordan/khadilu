@@ -27,18 +27,46 @@
 </div>
 
 <script>
-  const toggle = document.getElementById('mobileToggle');
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebarOverlay');
-  function closeSidebar() {
-    sidebar.classList.remove('active');
-    overlay.classList.remove('active');
-  }
-  toggle?.addEventListener('click', () => {
-    sidebar.classList.toggle('active');
-    overlay.classList.toggle('active');
+  // Wrap in an IIFE to prevent variable naming conflicts on specific pages like add_stock.php
+  (function() {
+    const mToggle = document.getElementById('mobileToggle');
+    const mSidebar = document.querySelector('.sidebar');
+    const mOverlay = document.getElementById('sidebarOverlay');
+
+    const closeSidebar = () => {
+      mSidebar?.classList.remove('active');
+      mOverlay?.classList.remove('active');
+    };
+
+    mToggle?.addEventListener('click', (e) => {
+      e.preventDefault();
+      mSidebar?.classList.toggle('active');
+      mOverlay?.classList.toggle('active');
+    });
+
+    mOverlay?.addEventListener('click', closeSidebar);
+  })();
+
+  // Global fix for number inputs: Auto-select text on focus to allow instant overwriting
+  $(document).on('focus', 'input[type="number"]', function() {
+      $(this).select();
   });
-  overlay?.addEventListener('click', closeSidebar);
+
+  // UX: Prevent double-submission and show loading state
+  $(document).on('submit', 'form', function() {
+      const $btn = $(this).find('button[type="submit"]');
+      if ($btn.length && !$btn.hasClass('no-loader')) {
+          $btn.addClass('loading');
+      }
+  });
+
+  // UX: Global Keyboard Shortcuts
+  $(document).on('keydown', function(e) {
+      if (e.key === "/" && !$(e.target).is('input, textarea, select')) {
+          e.preventDefault();
+          $('input[name="q"], .select2-search__field').first().focus();
+      }
+  });
 
   // Global Product Viewer
   window.viewProduct = function(id) {
@@ -46,7 +74,7 @@
     $.getJSON('ajax_product_details.php', {id: id}, function(data) {
         if(data.error) return alert(data.error);
         
-        $('#v-name').text(data.name);
+        $('#v-name').html(data.name + ' <span class="bold">[' + data.quality + ']</span>');
         $('#v-brand').text(data.brand || 'N/A');
         $('#v-cat').text(data.category);
         $('#v-quality').text(data.quality);

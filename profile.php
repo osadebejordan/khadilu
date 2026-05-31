@@ -53,7 +53,7 @@ require_once 'includes/header.php';
             <label>Confirm New Password</label>
             <input type="password" name="confirm_password" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-full">Update Password →</button>
+        <button type="submit" class="btn btn-primary btn-full">Update Password</button>
     </form>
 </div>
 

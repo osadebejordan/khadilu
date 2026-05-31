@@ -149,7 +149,7 @@ require_once 'includes/header.php';
                     <option value="Both">Both</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary btn-full">Add Customer →</button>
+            <button type="submit" class="btn btn-primary btn-full">Add Customer</button>
         </form>
     </div>
 
@@ -157,7 +157,7 @@ require_once 'includes/header.php';
         <div class="card-header">
             <h3>Customer Ledger <span class="dim small"><?= ucfirst($filter) ?> (<?= $_GET['type'] ?? 'All' ?>)</span></h3>
             <div class="filter-tabs">
-                <a href="customers.php?type=all" class="filter-tab <?= ($_GET['type'] ?? '') == 'all' ? 'active' : '' ?>">All</a>
+                <a href="customers.php?type=all" class="filter-tab <?= (empty($_GET['type']) || $_GET['type'] == 'all') ? 'active' : '' ?>">All</a>
                 <a href="customers.php?type=Retail" class="filter-tab <?= ($_GET['type'] ?? '') == 'Retail' ? 'active' : '' ?>">Retail</a>
                 <a href="customers.php?type=Repair" class="filter-tab <?= ($_GET['type'] ?? '') == 'Repair' ? 'active' : '' ?>">Repairs</a>
             </div>
@@ -237,7 +237,7 @@ require_once 'includes/header.php';
       </div>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" onclick="document.getElementById('edit-customer-modal').style.display='none'">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes →</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
       </div>
     </form>
   </div>
@@ -260,7 +260,8 @@ $(document).ready(function() {
     // Initialize select2 for the customer type in the edit modal
     $('#edit-customer-type').select2({
         dropdownParent: $('#edit-customer-modal'),
-        width: '100%'
+        width: '100%',
+        closeOnSelect: true
     });
 });
 </script>

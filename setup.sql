@@ -161,6 +161,17 @@ SELECT
         (SELECT IFNULL(SUM(total_amount - amount_paid), 0) FROM stock_outflow WHERE customer_id = c.id) + 
         (SELECT IFNULL(SUM(estimated_cost), 0) FROM repairs WHERE customer_id = c.id) - 
         (SELECT IFNULL(SUM(amount), 0) FROM customer_payments WHERE customer_id = c.id) -
-        (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id)
+        (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id AND status = 'Approved')
     ) AS balance
 FROM customers c;
+
+-- Business Expenses
+CREATE TABLE IF NOT EXISTS business_expenses (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  category ENUM('Rent', 'Electricity', 'Salary', 'Marketing', 'Transport', 'Others') DEFAULT 'Others',
+  amount DECIMAL(12,2) NOT NULL,
+  description TEXT,
+  expense_date DATE DEFAULT (CURRENT_DATE),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

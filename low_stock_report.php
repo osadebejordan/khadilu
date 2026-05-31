@@ -14,7 +14,7 @@ $page_title = 'Low Stock Report';
 $low_stock_items = $conn->query("
     SELECT id, name, brand, category, quality, sku, current_stock, low_stock_threshold, cost_price, selling_price
     FROM products
-    WHERE current_stock <= low_stock_threshold AND current_stock > 0 AND is_deleted = 0
+    WHERE current_stock <= low_stock_threshold AND is_deleted = 0
     ORDER BY current_stock ASC, name ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
@@ -92,18 +92,24 @@ require_once 'includes/header.php';
                         <tr>
                             <td class="dim small"><?= $item['id'] ?></td>
                             <td class="bold accent-text">
-                                <span class="view-product-link" onclick="viewProduct(<?= $item['id'] ?>)"><?= htmlspecialchars($item['name']) ?></span>
+                                <span class="view-product-link" onclick="viewProduct(<?= $item['id'] ?>)">
+                                    <?= htmlspecialchars($item['name']) ?>
+                                </span>
                             </td>
                             <td class="dim"><?= htmlspecialchars($item['brand'] ?? '—') ?></td>
-                            <td><span class="tag"><?= htmlspecialchars($item['category']) ?></span></td>
+                            <td><span class="tag"><?= htmlspecialchars($item['category']) ?></span></td> 
                             <td><span class="pill pill-green" style="font-size:0.7rem"><?= htmlspecialchars($item['quality']) ?></span></td>
                             <td class="mono small dim"><?= htmlspecialchars($item['sku'] ?? '—') ?></td>
-                            <td><span class="stock-badge yellow"><?= $item['current_stock'] ?></span></td>
+                            <td>
+                                <span class="stock-badge <?= $item['current_stock'] == 0 ? 'red' : 'yellow' ?>">
+                                    <?= $item['current_stock'] ?>
+                                </span>
+                            </td>
                             <td><?= $item['low_stock_threshold'] ?></td>
                             <td class="mono"><?= money($item['cost_price']) ?></td>
                             <td class="mono accent-text"><?= money($item['selling_price']) ?></td>
                             <td>
-                                <a href="add_stock.php?product_id=<?= $item['id'] ?>" class="btn btn-xs btn-outline">Restock</a>
+                                <a href="bulk_stock.php?product_id=<?= $item['id'] ?>" class="btn btn-xs btn-outline">Restock</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

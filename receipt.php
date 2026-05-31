@@ -85,7 +85,7 @@ $page_title = 'Receipt #TXN-' . str_pad($transaction['id'], 4, '0', STR_PAD_LEFT
                 <tbody>
                     <?php foreach ($items as $item): ?>
                     <tr>
-                        <td><?= htmlspecialchars($item['product_name']) ?> (<?= htmlspecialchars($item['quality']) ?>)</td>
+                        <td><?= htmlspecialchars($item['product_name']) ?> <span class="bold">[<?= htmlspecialchars($item['quality']) ?>]</span></td>
                         <td><?= $item['quantity'] ?></td>
                         <td><?= money($item['price_per_unit']) ?></td>
                         <td><?= money($item['total_amount']) ?></td>

@@ -45,7 +45,7 @@ $all_params = [];
 $all_types = "";
 
 if ($type === 'all' || $type === 'sales') {
-    $q_sales = "SELECT 'sale' AS txn_type, o.transaction_id AS id, o.created_at, CONCAT(p.name, ' (', p.quality, ')') AS product_name, p.sku, o.quantity, o.price_per_unit AS unit_price, o.total_amount AS total, o.customer_name AS party, o.payment_method AS extra, p.id as product_id 
+    $q_sales = "SELECT 'sale' AS txn_type, o.transaction_id AS id, o.created_at, p.name AS product_name, p.quality, p.sku, o.quantity, o.price_per_unit AS unit_price, o.total_amount AS total, o.customer_name AS party, o.payment_method AS extra, p.id as product_id 
           FROM stock_outflow o JOIN products p ON o.product_id = p.id 
           WHERE o.created_at BETWEEN ? AND ?";
     $params_sales = [$from_dt, $to_dt];
@@ -59,7 +59,7 @@ if ($type === 'all' || $type === 'sales') {
 }
 
 if ($type === 'all' || $type === 'inflow') {
-    $q_inflow = "SELECT 'inflow' AS txn_type, i.id, i.created_at, CONCAT(p.name, ' (', p.quality, ')') AS product_name, p.sku, i.quantity, i.cost_per_unit AS unit_price, i.total_cost AS total, CONCAT(i.supplier, IF(i.supplier_phone != '', CONCAT(' (', i.supplier_phone, ')'), '')) AS party, '' AS extra, p.id as product_id 
+    $q_inflow = "SELECT 'inflow' AS txn_type, i.id, i.created_at, p.name AS product_name, p.quality, p.sku, i.quantity, i.cost_per_unit AS unit_price, i.total_cost AS total, CONCAT(i.supplier, IF(i.supplier_phone != '', CONCAT(' (', i.supplier_phone, ')'), '')) AS party, '' AS extra, p.id as product_id 
           FROM stock_inflow i JOIN products p ON i.product_id = p.id 
           WHERE i.created_at BETWEEN ? AND ?";
     $params_inflow = [$from_dt, $to_dt];
@@ -75,7 +75,7 @@ if ($type === 'all' || $type === 'inflow') {
 if ($type === 'all' || $type === 'repairs') {
     // We use dummy conditions (LIKE) for brand/cat/product so the parameter count stays consistent across the UNION
     $q_repairs = "SELECT 'repair' AS txn_type, r.id, r.created_at, 
-            COALESCE(p.name, CONCAT('Repair: ', r.device_model)) AS product_name, 
+            COALESCE(p.name, r.device_model) AS product_name, p.quality,
             COALESCE(p.sku, '') AS sku, 
             1 AS quantity, 
             r.estimated_cost AS unit_price, 
@@ -97,7 +97,7 @@ if ($type === 'all' || $type === 'repairs') {
 }
 
 if ($type === 'all' || $type === 'returns') {
-    $q_returns = "SELECT 'return' AS txn_type, r.id, r.created_at, CONCAT(p.name, ' (', p.quality, ')') AS product_name, p.sku, r.quantity, 0 AS unit_price, r.refund_amount AS total, c.name AS party, r.notes AS extra, p.id as product_id 
+    $q_returns = "SELECT 'return' AS txn_type, r.id, r.created_at, p.name AS product_name, p.quality, p.sku, r.quantity, 0 AS unit_price, r.refund_amount AS total, c.name AS party, r.notes AS extra, p.id as product_id 
           FROM stock_returns r 
           JOIN products p ON r.product_id = p.id 
           LEFT JOIN customers c ON r.customer_id = c.id
@@ -131,7 +131,7 @@ require_once 'includes/header.php';
   <form method="GET" class="filter-form">
     <div class="form-group">
       <label>Type</label>
-      <select name="type">
+      <select name="type" class="select2-simple <?= $type !== 'all' ? 'filter-active' : '' ?>">
         <option value="all"    <?= $type==='all'    ?'selected':''?>>All Transactions</option>
         <option value="sales"  <?= $type==='sales'  ?'selected':''?>>Sales Only</option>
         <option value="inflow" <?= $type==='inflow' ?'selected':''?>>Stock Inflows Only</option>
@@ -139,17 +139,17 @@ require_once 'includes/header.php';
         <option value="returns" <?= $type==='returns' ?'selected':''?>>Returns Only</option>
       </select>
     </div>
-    <div class="form-group">
+    <div class="form-group" style="min-width: 160px;">
       <label>From</label>
-      <input type="date" name="from" value="<?= $from ?>">
+      <input type="date" name="from" value="<?= $from ?>" class="<?= $from !== date('Y-m-01') ? 'filter-active' : '' ?>">
     </div>
-    <div class="form-group">
+    <div class="form-group" style="min-width: 160px;">
       <label>To</label>
-      <input type="date" name="to" value="<?= $to ?>">
+      <input type="date" name="to" value="<?= $to ?>" class="<?= $to !== date('Y-m-d') ? 'filter-active' : '' ?>">
     </div>
     <div class="form-group">
       <label>Device Model</label>
-      <select name="product">
+      <select name="product" class="select2-simple <?= $product_f ? 'filter-active' : '' ?>">
         <option value="">All Devices</option>
         <?php foreach ($products as $p): ?>
         <option value="<?= $p['id'] ?>" <?= $product_f == $p['id'] ? 'selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
@@ -158,7 +158,7 @@ require_once 'includes/header.php';
     </div>
     <div class="form-group">
       <label>Brand</label>
-      <select name="brand">
+      <select name="brand" class="select2-simple <?= $brand_f ? 'filter-active' : '' ?>">
         <option value="">All Brands</option>
         <?php foreach ($brands as $b): ?>
         <option value="<?= htmlspecialchars($b) ?>" <?= $brand_f == $b ? 'selected' : '' ?>><?= htmlspecialchars($b) ?></option>
@@ -228,7 +228,7 @@ require_once 'includes/header.php';
       <tbody>
         <?php foreach ($rows as $r): ?>
         <tr>
-          <td class="mono small"><?= date('d M Y, H:i', strtotime($r['created_at'])) ?></td>
+          <td class="mono small"><?= date('d M Y, H:i:s', strtotime($r['created_at'])) ?></td>
           <td>
             <?php if ($r['txn_type'] === 'sale'): ?>
               <span class="pill pill-red">Sale ↑</span>
@@ -242,7 +242,8 @@ require_once 'includes/header.php';
           </td>
           <td class="bold accent-text">
             <span class="view-product-link" onclick="viewProduct(<?= $r['product_id'] ?>)">
-                <?= htmlspecialchars($r['product_name']) ?>
+                <?= ($r['txn_type'] === 'repair' && !$r['product_id'] ? 'Repair: ' : '') . htmlspecialchars($r['product_name']) ?>
+                <?php if(!empty($r['quality'])): ?> <span class="bold">[<?= htmlspecialchars($r['quality']) ?>]</span><?php endif; ?>
             </span>
           </td>
           <td class="mono small dim"><?= htmlspecialchars($r['sku'] ?: '—') ?></td>
@@ -264,7 +265,9 @@ require_once 'includes/header.php';
 <script>
 $(document).ready(function() {
     $('.filter-form select').select2({
-        width: 'resolve'
+        width: 'resolve',
+        dropdownParent: $('.filter-bar'), // Ensure dropdown renders correctly
+        closeOnSelect: true
     });
 });
 </script>

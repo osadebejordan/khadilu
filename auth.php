@@ -3,10 +3,6 @@
 //  Khadilu Phone Hub — Auth Functions
 // =============================================
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
 function isLoggedIn() {
     return isset($_SESSION['khadilu_user_id']);
 }
@@ -16,15 +12,33 @@ function requireLogin() {
         header("Location: index.php");
         exit();
     }
-
-    if (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE && !isAdmin()) {
-        header("Location: index.php?msg=maintenance");
-        exit();
-    }
 }
 
 function isAdmin() {
     return ($_SESSION['khadilu_role'] ?? '') === 'admin';
+}
+
+function isSubAdmin() {
+    return ($_SESSION['khadilu_role'] ?? '') === 'sub-admin';
+}
+
+/**
+ * Core Permission Checker
+ * Returns true if user is Super Admin OR a Sub-Admin with the specific permission.
+ */
+function can($permission) {
+    // Super Admin has absolute power
+    if (isAdmin()) return true;
+    
+    if (isSubAdmin()) {
+        $perms = $_SESSION['khadilu_permissions'] ?? [];
+        return in_array($permission, $perms);
+    }
+    return false;
+}
+
+function isStaff() {
+    return ($_SESSION['khadilu_role'] ?? '') === 'staff';
 }
 
 function currentUser() {
@@ -33,19 +47,24 @@ function currentUser() {
         'username'  => $_SESSION['khadilu_username'] ?? '',
         'full_name' => $_SESSION['khadilu_full_name'] ?? '',
         'role'      => $_SESSION['khadilu_role'] ?? 'staff',
+        'permissions' => $_SESSION['khadilu_permissions'] ?? []
     ];
 }
 
-// Generate a CSRF token
-function getCsrfToken() {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
+// --- Maintenance Mode Logic ---
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-// Validate a CSRF token
-function validateCsrfToken($token) {
-    return !empty($token) && hash_equals($_SESSION['csrf_token'] ?? '', $token);
+$current_page = basename($_SERVER['PHP_SELF']);
+
+// Identify if the current session belongs to the Engineer
+$is_engineer = ($_SESSION['khadilu_username'] ?? '') === 'engineer';
+
+// Block everyone except the engineer if maintenance mode is on. 
+// We remove index.php from the allowed list so users see the maintenance screen immediately.
+if (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE && !$is_engineer && $current_page !== 'maintenance.php') {
+    include 'maintenance.php';
+    exit;
 }
 ?>

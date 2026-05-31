@@ -48,9 +48,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
         // --- Quality Logic ---
         if ($_POST['action'] === 'add_quality') {
             $name = trim($_POST['name'] ?? '');
+            $cat_name = trim($_POST['category_name'] ?? '');
+            if ($cat_name === 'Global') $cat_name = null;
+
             if ($name) {
-                $stmt = $conn->prepare("INSERT INTO qualities (name) VALUES (?)");
-                $stmt->bind_param("s", $name);
+                $stmt = $conn->prepare("INSERT INTO qualities (name, category_name) VALUES (?, ?)");
+                $stmt->bind_param("ss", $name, $cat_name);
                 if ($stmt->execute()) { $msg = "Quality grade \"$name\" added."; $msg_type = 'success'; }
                 else { $msg = "Error: Quality type might already exist."; $msg_type = 'error'; }
             }
@@ -128,19 +131,30 @@ require_once 'includes/header.php';
                 <input type="hidden" name="action" value="add_quality">
                 <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
                 <div class="form-group">
-                    <label>Quality Grade</label>
-                    <input type="text" name="name" placeholder="e.g. Original, OLED, TFT..." required>
+                    <label>Variant / Quality Name</label>
+                    <input type="text" name="name" placeholder="e.g. OLED, Full Glass, Midnight Black..." required>
+                </div>
+                <div class="form-group">
+                    <label>Restrict to Category</label>
+                    <select name="category_name">
+                        <option value="Global">Available for All</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?= htmlspecialchars($cat['name']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <span class="form-hint">Choose "Global" if this applies to everything.</span>
                 </div>
                 <button type="submit" class="btn btn-primary btn-full" style="background: var(--blue); color: #fff;">Add Quality →</button>
             </form>
             <div class="card-divider"></div>
             <div class="table-wrap">
                 <table class="data-table small">
-                    <thead><tr><th>Grade</th><th style="text-align:right">Action</th></tr></thead>
+                    <thead><tr><th>Variant/Grade</th><th>Category</th><th style="text-align:right">Action</th></tr></thead>
                     <tbody>
                         <?php foreach ($qualities as $q): ?>
                         <tr>
                             <td class="bold" style="color: var(--blue);"><?= htmlspecialchars($q['name']) ?></td>
+                            <td class="dim"><?= htmlspecialchars($q['category_name'] ?? 'Global') ?></td>
                             <td style="text-align:right">
                                 <form method="POST" onsubmit="return confirm('Delete quality?')">
                                     <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">

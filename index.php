@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $stmt = $conn->prepare("SELECT id, full_name, password, role FROM users WHERE username = ?");
+    $stmt = $conn->prepare("SELECT id, full_name, password, role, permissions FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -29,19 +29,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result->num_rows === 1) {
         $user = $result->fetch_assoc();
         if (password_verify($password, $user['password'])) {
-            if (defined('MAINTENANCE_MODE') && MAINTENANCE_MODE && $user['role'] !== 'admin') {
-                $error = 'Maintenance Mode: Access is temporarily restricted to Administrators.';
-            } else {
-                // Security: Regenerate session ID to prevent session fixation
-                session_regenerate_id(true);
-                
-                $_SESSION['khadilu_user_id']   = $user['id'];
-                $_SESSION['khadilu_username']  = $username;
-                $_SESSION['khadilu_full_name'] = $user['full_name'];
-                $_SESSION['khadilu_role']      = $user['role'];
-                header("Location: dashboard.php");
-                exit();
-            }
+            // Security: Regenerate session ID to prevent session fixation
+            session_regenerate_id(true);
+            
+            $_SESSION['khadilu_user_id']   = $user['id'];
+            $_SESSION['khadilu_username']  = $username;
+            $_SESSION['khadilu_full_name'] = $user['full_name'];
+            $_SESSION['khadilu_role']      = $user['role'];
+            
+            // Permissions are stored as a comma-separated string or JSON in the DB
+            $raw_perms = $user['permissions'] ?? '';
+            $_SESSION['khadilu_permissions'] = !empty($raw_perms) ? explode(',', $raw_perms) : [];
+
+            header("Location: dashboard.php");
+            exit();
         }
     }
     $error = 'Invalid username or password.';
@@ -80,10 +81,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="current-password" required>
+        <div class="password-wrapper">
+          <input type="password" id="password" name="password" placeholder="Enter password" autocomplete="current-password" required>
+          <span class="toggle-password" id="togglePassword">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </span>
+        </div>
       </div>
       <button type="submit" class="btn btn-primary btn-full">
-        Sign In <span class="btn-arrow">→</span>
+        Sign In
       </button>
     </form>
 
@@ -95,5 +101,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <span>Every time.</span>
   </div>
 </div>
+
+<script>
+  const togglePassword = document.getElementById('togglePassword');
+  const password = document.getElementById('password');
+  
+  const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  const eyeOffIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
+  togglePassword.addEventListener('click', function() {
+    const type = password.getAttribute('type') === 'password' ? 'text' : 'password';
+    password.setAttribute('type', type);
+    
+    // Toggle SVG icon
+    this.innerHTML = type === 'password' ? eyeIcon : eyeOffIcon;
+  });
+</script>
 </body>
 </html>
