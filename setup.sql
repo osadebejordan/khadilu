@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS categories (
 -- Quality Grades (Dynamic)
 CREATE TABLE IF NOT EXISTS qualities (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(100) UNIQUE NOT NULL
+  name VARCHAR(100) UNIQUE NOT NULL,
+  category_name VARCHAR(60) DEFAULT NULL  -- Optionally restrict this quality to a category
 );
 
 -- Insert default categories and qualities
@@ -80,6 +81,7 @@ CREATE TABLE IF NOT EXISTS stock_inflow (
   cost_per_unit DECIMAL(12,2) DEFAULT 0.00,
   total_cost DECIMAL(12,2) DEFAULT 0.00,
   supplier VARCHAR(120) DEFAULT 'Unknown',
+  supplier_phone VARCHAR(20) DEFAULT NULL,
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
@@ -138,9 +140,11 @@ ALTER TABLE stock_outflow ADD CONSTRAINT fk_transaction_id FOREIGN KEY (transact
 CREATE TABLE IF NOT EXISTS repairs (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_id INT DEFAULT NULL,
-  product_id INT DEFAULT NULL, -- Added for inventory integration
+  product_id INT DEFAULT NULL,
   customer_name VARCHAR(150) NOT NULL,
+  customer_phone VARCHAR(20) DEFAULT NULL,
   device_model VARCHAR(150) NOT NULL,
+  category VARCHAR(60) DEFAULT NULL,
   issue_description TEXT NOT NULL,
   status ENUM('Received', 'In-Progress', 'Ready', 'Delivered', 'Cancelled') DEFAULT 'Received',
   estimated_cost DECIMAL(12,2) DEFAULT 0.00,
@@ -150,18 +154,19 @@ CREATE TABLE IF NOT EXISTS repairs (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL -- Added foreign key constraint
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
 );
 
 -- View for centralized debt calculation
+-- Repair balance correctly deducts deposits already paid at intake
 CREATE OR REPLACE VIEW view_customer_balances AS
 SELECT 
     c.*,
     (
         (SELECT IFNULL(SUM(total_amount - amount_paid), 0) FROM stock_outflow WHERE customer_id = c.id) + 
-        (SELECT IFNULL(SUM(estimated_cost), 0) FROM repairs WHERE customer_id = c.id) - 
+        (SELECT IFNULL(SUM(estimated_cost - amount_paid), 0) FROM repairs WHERE customer_id = c.id) - 
         (SELECT IFNULL(SUM(amount), 0) FROM customer_payments WHERE customer_id = c.id) -
-        (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id AND status = 'Approved')
+        (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id)
     ) AS balance
 FROM customers c;
 
@@ -173,5 +178,17 @@ CREATE TABLE IF NOT EXISTS business_expenses (
   amount DECIMAL(12,2) NOT NULL,
   description TEXT,
   expense_date DATE DEFAULT (CURRENT_DATE),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- System Audit Log
+CREATE TABLE IF NOT EXISTS system_audit_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  table_name VARCHAR(60),
+  record_id INT,
+  details TEXT,
+  ip_address VARCHAR(45),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

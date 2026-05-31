@@ -96,6 +96,20 @@
         $('#global-view-modal').css('display', 'flex');
     });
   };
+
+  // Theme switcher handler
+  (function() {
+    const selector = document.getElementById('sidebarThemeSelector');
+    if (selector) {
+      const savedTheme = localStorage.getItem('khadilu-theme') || 'theme-business-light';
+      selector.value = savedTheme;
+      selector.addEventListener('change', function() {
+        const theme = this.value;
+        localStorage.setItem('khadilu-theme', theme);
+        document.documentElement.className = theme;
+      });
+    }
+  })();
 </script>
 </body>
 </html>

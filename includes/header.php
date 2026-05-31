@@ -13,6 +13,12 @@ $out_of_stock_count = ($out_of_stock_q) ? ($out_of_stock_q->fetch_assoc()['cnt']
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  (function() {
+    const savedTheme = localStorage.getItem('khadilu-theme') || 'theme-business-light';
+    document.documentElement.className = savedTheme;
+  })();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><?= $page_title ?? 'Dashboard' ?> — Khadilu Phone Hub</title>
@@ -154,6 +160,15 @@ $out_of_stock_count = ($out_of_stock_q) ? ($out_of_stock_q->fetch_assoc()['cnt']
     </li>
     <?php endif; ?>
   </ul>
+
+  <div class="sidebar-theme-selector" style="padding: 12px 16px; border-top: 1px solid var(--border);">
+    <div style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-dimmer); letter-spacing: 0.1em; margin-bottom: 8px;">Theme</div>
+    <select id="sidebarThemeSelector" class="theme-select">
+      <option value="theme-business-light">💼 Emerald Prestige</option>
+      <option value="theme-corporate-dark">🛠️ Midnight Amber</option>
+      <option value="theme-cyber-original">👾 Cyber Command</option>
+    </select>
+  </div>
 
   <div class="sidebar-bottom">
     <a href="profile.php" class="sidebar-user" title="My Profile">

@@ -51,6 +51,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
+  (function() {
+    const savedTheme = localStorage.getItem('khadilu-theme') || 'theme-business-light';
+    document.documentElement.className = savedTheme;
+  })();
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login — Khadilu Phone Hub</title>
@@ -61,6 +67,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="auth-body">
 
 <div class="auth-bg-grid"></div>
+
+<!-- Floating Theme Selector -->
+<div class="theme-toggle-login" style="position: absolute; top: 20px; right: 20px; z-index: 100;">
+  <select id="loginThemeSelector" class="theme-select" style="width: auto; height: 34px !important; padding: 4px 10px !important; font-size: 0.8rem !important;">
+    <option value="theme-business-light">💼 Emerald Prestige</option>
+    <option value="theme-corporate-dark">🛠️ Midnight Amber</option>
+    <option value="theme-cyber-original">👾 Cyber Command</option>
+  </select>
+</div>
 
 <div class="auth-wrap">
   <div class="auth-card">
@@ -115,6 +130,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     // Toggle SVG icon
     this.innerHTML = type === 'password' ? eyeIcon : eyeOffIcon;
+  });
+
+  // Theme Switching Logic
+  const loginThemeSelector = document.getElementById('loginThemeSelector');
+  const currentTheme = localStorage.getItem('khadilu-theme') || 'theme-business-light';
+  loginThemeSelector.value = currentTheme;
+
+  loginThemeSelector.addEventListener('change', function() {
+    const selectedTheme = this.value;
+    localStorage.setItem('khadilu-theme', selectedTheme);
+    document.documentElement.className = selectedTheme;
   });
 </script>
 </body>

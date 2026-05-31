@@ -92,21 +92,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 $customers = [];
 try {
     $filter = $_GET['filter'] ?? 'all';
-    $type_filter = $_GET['type'] ?? '';
-    $sql = "SELECT * FROM view_customer_balances";
+    $search = trim($_GET['q'] ?? '');
+    // Whitelist to prevent SQL injection — only allow valid type values
+    $allowed_types = ['Retail', 'Repair', 'Both'];
+    $type_filter = in_array($_GET['type'] ?? '', $allowed_types) ? $_GET['type'] : '';
+
+    $where_clauses = [];
+    $bind_params   = [];
+    $bind_types    = '';
 
     if ($filter === 'debt') {
-        $sql .= " WHERE balance > 0";
+        $where_clauses[] = "balance > 0";
+    }
+    if ($type_filter) {
+        $where_clauses[] = "type IN (?, 'Both')";
+        $bind_params[]   = $type_filter;
+        $bind_types     .= 's';
+    }
+    if ($search) {
+        $like = "%$search%";
+        $where_clauses[] = "(name LIKE ? OR phone LIKE ?)";
+        $bind_params[]   = $like;
+        $bind_params[]   = $like;
+        $bind_types     .= 'ss';
     }
 
-    if ($type_filter && $type_filter !== 'all') {
-        $sql .= (strpos($sql, 'WHERE') !== false ? " AND " : " WHERE ") . "type IN ('$type_filter', 'Both')";
+    $sql = "SELECT * FROM view_customer_balances";
+    if ($where_clauses) {
+        $sql .= " WHERE " . implode(" AND ", $where_clauses);
     }
-
     $sql .= " ORDER BY balance DESC";
 
-    $res = $conn->query($sql);
-    $customers = $res->fetch_all(MYSQLI_ASSOC);
+    $stmt_c = $conn->prepare($sql);
+    if ($bind_params) {
+        $stmt_c->bind_param($bind_types, ...$bind_params);
+    }
+    $stmt_c->execute();
+    $customers = $stmt_c->get_result()->fetch_all(MYSQLI_ASSOC);
 } catch (Exception $e) {
     log_error($e, 'FETCH_CUSTOMERS');
     $msg = "Database Error: " . $e->getMessage() . ". Please visit <a href='db_check.php'>db_check.php</a> to sync your tables.";
