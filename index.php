@@ -2,7 +2,7 @@
 require_once 'config.php';
 require_once 'auth.php';
 
-if (isLoggedIn()) {
+if (isLoggedin()) {
     header("Location: dashboard.php");
     exit();
 }
