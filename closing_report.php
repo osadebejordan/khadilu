@@ -38,7 +38,20 @@ while ($row = $pay_res->fetch_assoc()) {
 
 $grand_total = array_sum($totals);
 
-// 3. Fetch Detailed Log for the day
+// 3. Fetch Daily Expenses
+$exp_stmt = $conn->prepare("SELECT SUM(amount) as amt FROM business_expenses WHERE expense_date = ?");
+$exp_stmt->bind_param("s", $date);
+$exp_stmt->execute();
+$total_expenses = $exp_stmt->get_result()->fetch_assoc()['amt'] ?? 0;
+
+$net_flow = $grand_total - $total_expenses;
+
+$exp_list_stmt = $conn->prepare("SELECT category, amount, description FROM business_expenses WHERE expense_date = ? ORDER BY created_at DESC");
+$exp_list_stmt->bind_param("s", $date);
+$exp_list_stmt->execute();
+$daily_expenses = $exp_list_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// 4. Fetch Detailed Log for the day
 $details_sql = "
     (SELECT created_at, customer_name as party, 'Sale' as category, payment_method, total_paid as amount, notes 
      FROM sales_transactions WHERE DATE(created_at) = ?)
@@ -78,23 +91,33 @@ require_once 'includes/header.php';
 <div class="stats-grid">
     <div class="stat-card accent">
         <div class="stat-label">Total Cash Inflow</div>
-        <div class="stat-value mono"><?= money($totals['Cash']) ?></div>
+        <div class="stat-value mono" title="<?= money($totals['Cash']) ?>"><?= shortMoney($totals['Cash']) ?></div>
         <div class="stat-sub">Physical Cash on Hand</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">POS Settlements</div>
-        <div class="stat-value mono blue-text"><?= money($totals['POS']) ?></div>
+        <div class="stat-value mono blue-text" title="<?= money($totals['POS']) ?>"><?= shortMoney($totals['POS']) ?></div>
         <div class="stat-sub">Card / Terminal Payments</div>
     </div>
     <div class="stat-card">
         <div class="stat-label">Bank Transfers</div>
-        <div class="stat-value mono purple"><?= money($totals['Transfer']) ?></div>
+        <div class="stat-value mono purple" title="<?= money($totals['Transfer']) ?>"><?= shortMoney($totals['Transfer']) ?></div>
         <div class="stat-sub">Direct Bank Credits</div>
     </div>
     <div class="stat-card accent">
-        <div class="stat-label">Grand Total</div>
-        <div class="stat-value mono accent-text"><?= money($grand_total) ?></div>
-        <div class="stat-sub">Combined Revenue for the Day</div>
+        <div class="stat-label">Grand Revenue</div>
+        <div class="stat-value mono accent-text" title="<?= money($grand_total) ?>"><?= shortMoney($grand_total) ?></div>
+        <div class="stat-sub">Combined Daily Inflow</div>
+    </div>
+    <div class="stat-card danger">
+        <div class="stat-label">Daily Expenses</div>
+        <div class="stat-value mono red-text" title="<?= money($total_expenses) ?>"><?= shortMoney($total_expenses) ?></div>
+        <div class="stat-sub">Total Outflow Logged</div>
+    </div>
+    <div class="stat-card <?= $net_flow >= 0 ? 'accent' : 'danger' ?>">
+        <div class="stat-label">Net Cash Flow</div>
+        <div class="stat-value mono <?= $net_flow >= 0 ? 'green-text' : 'red-text' ?>" title="<?= money($net_flow) ?>"><?= shortMoney($net_flow) ?></div>
+        <div class="stat-sub">Net Profit/Loss Today</div>
     </div>
 </div>
 
@@ -137,6 +160,47 @@ require_once 'includes/header.php';
                 <?php endforeach; ?>
                 <?php if (empty($details)): ?>
                 <tr><td colspan="6" class="empty-state">No financial activity recorded for this date.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3>Expense Breakdown — <?= date('d M Y', strtotime($date)) ?></h3>
+    </div>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 150px;">Category</th>
+                    <th>Description</th>
+                    <th style="width: 200px;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($daily_expenses as $row): ?>
+                <tr>
+                    <td>
+                        <?php 
+                        $c_class = match($row['category']) {
+                            'Rent' => 'pill-blue',
+                            'Electricity' => 'pill-yellow',
+                            'Salary' => 'pill-green',
+                            'Marketing' => 'pill-purple',
+                            'Transport' => 'pill-dim',
+                            default => ''
+                        };
+                        ?>
+                        <span class="pill <?= $c_class ?>"><?= htmlspecialchars($row['category']) ?></span>
+                    </td>
+                    <td class="small dim"><?= htmlspecialchars($row['description'] ?: '—') ?></td>
+                    <td class="mono bold red-text"><?= money($row['amount']) ?></td>
+                </tr>
+                <?php endforeach; ?>
+                <?php if (empty($daily_expenses)): ?>
+                <tr><td colspan="3" class="empty-state">No operating expenses recorded for this date.</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
