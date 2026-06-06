@@ -208,6 +208,7 @@ echo renderToast($msg, $msg_type);
       <a href="<?= getTabUrl('archived', $params) ?>" class="filter-tab <?= $filter === 'archived' ? 'active' : '' ?>">Archived</a>
     </div>
     <?php if (can('manage_inventory')): ?>
+      <a href="analyze_stock.php" class="btn btn-outline" style="margin-right: 10px;">📊 Stock Analytics</a>
       <button class="btn btn-primary" onclick="document.getElementById('add-modal').style.display='flex'">Register Device</button>
     <?php endif; ?>
   </div>
