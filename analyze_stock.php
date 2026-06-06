@@ -9,71 +9,126 @@ if (!isAdmin()) {
     exit();
 }
 
-$page_title = 'Inventory Intelligence';
-$output = '';
-$exit_code = 0;
-$report_file = '';
+// --- Handle CSV Export (Native PHP) ---
+if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+    $query = "
+        SELECT p.id, p.name, p.brand, p.quality, p.current_stock, p.cost_price, 
+               (p.current_stock * p.cost_price) as frozen_capital
+        FROM products p
+        WHERE p.is_deleted = 0 
+        AND p.current_stock > 0
+        AND p.id NOT IN (
+            SELECT product_id FROM stock_outflow 
+            WHERE created_at > (NOW() - INTERVAL 30 DAY)
+        )
+        ORDER BY frozen_capital DESC";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_analysis'])) {
-    // Ensure Python 3 is installed and the mysql-connector-python package is available
-    $script_path = escapeshellarg(__DIR__ . "/stock_analyzer.py");
+    $res = $conn->query($query);
 
-    // Check for a local virtual environment first, otherwise fallback to system python3
-    $venv_path = __DIR__ . "/venv/bin/python3";
-    $python_bin = file_exists($venv_path) ? $venv_path : "python3";
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment; filename="dead_stock_report_' . date('Ymd') . '.csv"');
 
-    // Using exec instead of shell_exec to capture the exit status
-    $full_output = [];
-    $command = "$python_bin $script_path 2>&1";
-    exec($command, $full_output, $exit_code);
-    $output = implode("\n", $full_output);
+    $output = fopen('php://output', 'w');
+    fputcsv($output, ['ID', 'Product Name', 'Brand', 'Quality', 'Stock Level', 'Cost Price', 'Frozen Capital']);
 
-    if ($exit_code === 0) {
-        // Extract the filename from the Python output using a simple pattern match
-        if (preg_match('/Detailed report saved as: (dead_stock_report_.*?\.csv)/', $output, $matches)) {
-            $report_file = $matches[1];
-        }
-        logActivity('RUN_STOCK_ANALYSIS', 'products', null, "Python analytics engine executed successfully.");
-    } else {
-        log_error(new Exception("Python Engine Failed (Code $exit_code): $output"), 'PYTHON_SYSTEM');
+    while ($row = $res->fetch_assoc()) {
+        fputcsv($output, [
+            $row['id'],
+            $row['name'],
+            $row['brand'],
+            $row['quality'],
+            $row['current_stock'],
+            $row['cost_price'],
+            $row['frozen_capital']
+        ]);
     }
+    fclose($output);
+    exit;
+}
+
+$page_title = 'Inventory Intelligence';
+$dead_stock = [];
+$total_frozen = 0;
+
+// Identify "Dead Stock" (Items not sold in the last 30 days)
+$query = "
+    SELECT p.id, p.name, p.brand, p.quality, p.current_stock, p.cost_price, 
+           (p.current_stock * p.cost_price) as frozen_capital
+    FROM products p
+    WHERE p.is_deleted = 0 
+    AND p.current_stock > 0
+    AND p.id NOT IN (
+        SELECT product_id FROM stock_outflow 
+        WHERE created_at > (NOW() - INTERVAL 30 DAY)
+    )
+    ORDER BY frozen_capital DESC";
+
+$res = $conn->query($query);
+while ($row = $res->fetch_assoc()) {
+    $dead_stock[] = $row;
+    $total_frozen += $row['frozen_capital'];
 }
 
 require_once 'includes/header.php';
-echo renderToast($exit_code !== 0 && $output ? "Analytics engine encountered an error." : "", "error");
 ?>
 
 <div class="card">
     <div class="card-header">
-        <h3>📊 Advanced Stock Analytics</h3>
+        <h3>📊 Stagnant Stock Analysis</h3>
+        <?php if (!empty($dead_stock)): ?>
+            <a href="?export=csv" class="btn btn-success btn-sm">📥 Download CSV Report</a>
+        <?php endif; ?>
     </div>
     <div class="card-body" style="padding: 30px;">
-        <div class="empty-state" style="max-width: 600px; margin: 0 auto 30px auto; border: 1px dashed var(--border);">
-            <p>This engine analyzes sales velocity and identifies <strong>"Dead Stock"</strong>—items that have not moved in over 30 days. It calculates frozen capital to help you optimize cash flow.</p>
-            <form method="POST">
-                <button type="submit" name="run_analysis" class="btn btn-primary btn-lg">Execute Analysis Engine</button>
-            </form>
+        <div class="stats-grid compact" style="margin-bottom: 30px;">
+            <div class="stat-card accent">
+                <div class="stat-label">Total Frozen Capital</div>
+                <div class="stat-value mono red-text"><?= money($total_frozen) ?></div>
+                <div class="stat-sub">Value of items unsold in 30+ days</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Stagnant Items</div>
+                <div class="stat-value"><?= count($dead_stock) ?></div>
+                <div class="stat-sub">Unique models needing attention</div>
+            </div>
         </div>
 
-        <?php if ($output !== ''): ?>
-            <div style="background: var(--surface-2); padding: 20px; border-radius: 8px; border: 1px solid <?= $exit_code === 0 ? 'var(--border-l)' : 'var(--red)' ?>;">
-                <h4 style="margin-top:0; color: <?= $exit_code === 0 ? 'var(--accent)' : 'var(--red)' ?>;">
-                    <?= $exit_code === 0 ? '✅ Engine Output:' : '❌ Engine Error (Code ' . $exit_code . '):' ?>
-                </h4>
-                <pre style="white-space: pre-wrap; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px;"><?= htmlspecialchars($output) ?></pre>
-
-                <?php if ($exit_code !== 0 && strpos($output, 'ModuleNotFoundError') !== false): ?>
-                    <div class="alert alert-error" style="margin-top: 15px; font-size: 0.8rem;">
-                        <strong>Troubleshooting:</strong> The Python <code>mysql-connector-python</code> library is missing. <br>
-                        Run: <code>sudo python3 -m pip install mysql-connector-python</code> in your server terminal.
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($report_file && file_exists(__DIR__ . '/' . $report_file)): ?>
-                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
-                        <a href="<?= htmlspecialchars($report_file) ?>" class="btn btn-success" download>📥 Download Detailed CSV Report</a>
-                    </div>
-                <?php endif; ?>
+        <?php if (empty($dead_stock)): ?>
+            <div class="empty-state ok">
+                <div style="font-size: 3rem; margin-bottom: 15px;">✅</div>
+                <p>Inventory is healthy! All stocked items have recorded sales within the last 30 days.</p>
+            </div>
+        <?php else: ?>
+            <div class="table-wrap">
+                <table class="data-table small">
+                    <thead>
+                        <tr>
+                            <th>Product Model</th>
+                            <th>Brand</th>
+                            <th>Stock</th>
+                            <th>Cost Price</th>
+                            <th>Frozen Capital</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($dead_stock as $row): ?>
+                            <tr>
+                                <td class="bold accent-text">
+                                    <?= htmlspecialchars($row['name']) ?>
+                                    <span class="dim">[<?= htmlspecialchars($row['quality']) ?>]</span>
+                                </td>
+                                <td><?= htmlspecialchars($row['brand']) ?></td>
+                                <td class="mono"><?= $row['current_stock'] ?></td>
+                                <td class="mono dim"><?= money($row['cost_price']) ?></td>
+                                <td class="mono bold red-text"><?= money($row['frozen_capital']) ?></td>
+                                <td>
+                                    <a href="bulk_prices.php" class="btn btn-xs btn-outline">Adjust Price</a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         <?php endif; ?>
     </div>
