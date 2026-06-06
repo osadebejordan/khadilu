@@ -43,6 +43,7 @@ if (isset($_GET['export']) && $_GET['export'] === 'csv') {
         ]);
     }
     fclose($output);
+    logActivity('EXPORT_STAGNANT_REPORT', 'products', null, "Admin exported a dead stock CSV report.");
     exit;
 }
 
@@ -68,6 +69,7 @@ while ($row = $res->fetch_assoc()) {
     $dead_stock[] = $row;
     $total_frozen += $row['frozen_capital'];
 }
+logActivity('VIEW_STAGNANT_ANALYSIS', 'products', null, "Admin viewed stagnant stock analysis.");
 
 require_once 'includes/header.php';
 ?>
@@ -83,8 +85,8 @@ require_once 'includes/header.php';
         <div class="stats-grid compact" style="margin-bottom: 30px;">
             <div class="stat-card accent">
                 <div class="stat-label">Total Frozen Capital</div>
-                <div class="stat-value mono red-text"><?= money($total_frozen) ?></div>
-                <div class="stat-sub">Value of items unsold in 30+ days</div>
+                <div class="stat-value mono red-text" id="frozen-val"><?= money($total_frozen) ?></div>
+                <div class="stat-sub">Based on Cost Price (Investment)</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">Stagnant Items</div>
@@ -133,5 +135,12 @@ require_once 'includes/header.php';
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+    // Improvement: Add a quick filter for the analysis table to isolate high-value frozen items
+    document.getElementById('frozen-val').addEventListener('click', function() {
+        alert("This represents ₦" + <?= json_encode($total_frozen) ?> + " currently tied up in non-moving inventory. Consider applying discounts to these items.");
+    });
+</script>
 
 <?php require_once 'includes/footer.php'; ?>
