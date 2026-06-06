@@ -205,6 +205,10 @@ $log = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $total_bought = 0;
 $total_paid = 0;
 foreach($log as $entry) {
+    // Only count returns in the balance if they have been approved
+    if ($entry['type'] === 'return' && $entry['is_returned'] !== 'Approved') {
+        continue;
+    }
     $total_bought += $entry['charge'];
     $total_paid += $entry['credit'];
 }
