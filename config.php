@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 // =============================================
 //  Khadilu Phone Hub — Database Configuration
 // =============================================
@@ -7,7 +9,7 @@
 date_default_timezone_set('Africa/Lagos');
 
 // Security: Disable error display in production to prevent path leakage
-define('DEV_MODE', false); // Set to false in production
+define('DEV_MODE', false); // Set to true to enable debugging
 define('MAINTENANCE_MODE', false); // Set to true to restrict access to Admins only
 error_reporting(DEV_MODE ? E_ALL : 0);
 ini_set('display_errors', DEV_MODE ? 1 : 0);
@@ -37,7 +39,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Inactivity Timeout (e.g., 30 minutes)
-$timeout_duration = 1800; 
+$timeout_duration = 1800;
 if (isset($_SESSION['khadilu_user_id'])) {
     if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout_duration)) {
         session_unset();
@@ -64,26 +66,28 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 /**
  * Centralized error logging
  */
-function log_error($e, $type = 'DATABASE') {
+function log_error(Throwable $e, string $type = 'DATABASE'): void
+{
     $log_dir = __DIR__ . '/logs';
     if (!is_dir($log_dir)) {
         @mkdir($log_dir, 0777, true);
     }
-    
-    $user_id = $_SESSION['khadilu_user_id'] ?? 'Guest/System';
+
+    $user_id = (string)($_SESSION['khadilu_user_id'] ?? 'Guest/System');
     $timestamp = date('Y-m-d H:i:s');
     $message = $e->getMessage();
     $file = $e->getFile();
     $line = $e->getLine();
-    
-    $log_entry = "[$timestamp] [$type] [UID: $user_id] $message in $file:$line" . PHP_EOL;
+
+    $log_entry = sprintf("[%s] [%s] [UID: %s] %s in %s:%d%s", $timestamp, $type, $user_id, $message, $file, $line, PHP_EOL);
     @error_log($log_entry, 3, $log_dir . '/app_errors.log');
 }
 
 /**
  * Records administrative and system actions
  */
-function logActivity($action, $table = null, $record_id = null, $details = null) {
+function logActivity(string $action, ?string $table = null, ?int $record_id = null, ?string $details = null): void
+{
     global $conn;
     $user_id = $_SESSION['khadilu_user_id'] ?? null;
     if (!$user_id) return;
@@ -106,51 +110,53 @@ try {
 }
 
 // Helper: format money
-function money($amount) {
+function money(float|int $amount): string
+{
     return CURRENCY . number_format($amount, 2);
 }
 
 // Helper: abbreviate large money for dashboard cards
-function shortMoney($amount) {
-    // Ensure we are working with a clean number (strip commas if any)
+function shortMoney(float|int|string $amount): string
+{
     $amount = (float)str_replace(',', '', (string)$amount);
 
-    if ($amount >= 1000000000) {
-        return CURRENCY . number_format($amount / 1000000000, 1) . 'B';
-    }
-    if ($amount >= 1000000) {
-        return CURRENCY . number_format($amount / 1000000, 1) . 'M';
-    }
-    if ($amount >= 1000) {
-        $val = $amount / 1000;
-        // If it's a whole thousand (like 300.0), show 300K. If not (like 300.5), show 300.5K
-        return CURRENCY . ($val == (int)$val ? number_format($val, 0) : number_format($val, 1)) . 'K';
-    }
-    return CURRENCY . number_format($amount, 0);
+    return match (true) {
+        $amount >= 1000000000 => CURRENCY . number_format($amount / 1000000000, 1) . 'B',
+        $amount >= 1000000    => CURRENCY . number_format($amount / 1000000, 1) . 'M',
+        $amount >= 1000       => CURRENCY . (
+            ($val = $amount / 1000) == (int)$val
+            ? number_format($val, 0)
+            : number_format($val, 1)
+        ) . 'K',
+        default               => CURRENCY . number_format($amount, 0),
+    };
 }
 
 /**
  * Calculates margin percentage
  */
-function calculateMargin($cost, $selling) {
+function calculateMargin(float|int $cost, float|int $selling): float|int
+{
     if ($selling <= 0) return 0;
     $profit = $selling - $cost;
     return ($profit / $selling) * 100;
 }
 
 // Helper: time ago
-function timeAgo($datetime) {
+function timeAgo($datetime)
+{
     $time = max(0, time() - strtotime($datetime));
     if ($time < 60) return 'just now';
-    if ($time < 3600) return floor($time/60) . 'm ago';
-    if ($time < 86400) return floor($time/3600) . 'h ago';
+    if ($time < 3600) return floor($time / 60) . 'm ago';
+    if ($time < 86400) return floor($time / 3600) . 'h ago';
     return date('d M Y', strtotime($datetime));
 }
 
 /**
  * Generates a unique random SKU for inventory items
  */
-function generateSKU($prefix = 'KH') {
+function generateSKU($prefix = 'KH')
+{
     $chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
     $res = '';
     for ($i = 0; $i < 8; $i++) {
@@ -162,7 +168,8 @@ function generateSKU($prefix = 'KH') {
 /**
  * Standardized Toast Notification Renderer
  */
-function renderToast($msg, $type = 'success') {
+function renderToast($msg, $type = 'success')
+{
     if (!$msg) return '';
     $html = '<div class="toast alert-' . $type . '" id="app-toast">';
     $html .= '<div>' . $msg . '</div>';
@@ -173,15 +180,15 @@ function renderToast($msg, $type = 'success') {
 }
 
 // --- CSRF Security Helpers ---
-function getCsrfToken() {
+function getCsrfToken()
+{
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
     return $_SESSION['csrf_token'];
 }
 
-function validateCsrfToken($token) {
+function validateCsrfToken($token)
+{
     return !empty($token) && hash_equals($_SESSION['csrf_token'] ?? '', $token);
 }
-
-?>

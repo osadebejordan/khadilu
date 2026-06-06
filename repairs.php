@@ -9,7 +9,8 @@ $msg_type = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'add_repair') {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $msg = "Security Validation Failed."; $msg_type = "error";
+        $msg = "Security Validation Failed.";
+        $msg_type = "error";
     } else {
 
         try {
@@ -95,7 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         } catch (Exception $e) {
             log_error($e, 'REPAIR_INTAKE');
-            $msg = $e->getMessage(); $msg_type = 'error';
+            $msg = $e->getMessage();
+            $msg_type = 'error';
         }
     }
 }
@@ -117,7 +119,7 @@ if ($filter_status === 'active') {
 }
 
 if ($search) {
-    $id_search = (str_starts_with(strtoupper($search), '#REP-')) ? intval(substr($search, 5)) : (is_numeric($search) && strlen($search) < 5 ? intval($search) : 0);
+    $id_search = (str_starts_with(strtoupper($search), '#REP-')) ? intval(substr($search, 5)) : (is_numeric($search) && strlen($search) < 5 ? (int)$search : 0);
     $name_search = "%$search%";
     if ($id_search > 0) {
         $where_conditions[] = "(id = ? OR customer_name LIKE ? OR device_model LIKE ?)";
@@ -173,7 +175,7 @@ echo renderToast($msg, $msg_type);
 
     <div class="toolbar-right">
         <div class="filter-tabs">
-            <?php $link_params = ($search ? '&q='.urlencode($search) : ''); ?>
+            <?php $link_params = ($search ? '&q=' . urlencode($search) : ''); ?>
             <a href="?status=active<?= $link_params ?>" class="filter-tab <?= $filter_status === 'active' ? 'active' : '' ?>">Ongoing</a>
             <a href="?status=Ready<?= $link_params ?>" class="filter-tab yellow <?= $filter_status === 'Ready' ? 'active' : '' ?>">Ready (<?= $ready_repairs_count ?>)</a>
             <a href="?status=Delivered<?= $link_params ?>" class="filter-tab <?= $filter_status === 'Delivered' ? 'active' : '' ?>">Completed</a>
@@ -197,47 +199,49 @@ echo renderToast($msg, $msg_type);
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($repairs as $r): 
+                <?php foreach ($repairs as $r):
                     $bal = $r['estimated_cost'] - $r['amount_paid'];
                 ?>
-                <tr>
-                    <td class="mono small">#REP-<?= str_pad($r['id'], 4, '0', STR_PAD_LEFT) ?></td>
-                    <td>
-                        <div class="bold accent-text">
-                            <?= htmlspecialchars($r['device_model']) ?>
-                            <?php if(!empty($r['quality'])): ?> <span class="bold" style="color:var(--text); opacity:0.8">[<?= htmlspecialchars($r['quality']) ?>]</span><?php endif; ?>
-                        </div>
-                        <div class="tag" style="font-size:0.65rem; padding:1px 5px;"><?= htmlspecialchars($r['category'] ?? 'Repair') ?></div>
-                        <div class="dim small"><?= htmlspecialchars($r['issue_description']) ?></div>
-                    </td>
-                    <td>
-                        <div class="bold"><?= htmlspecialchars($r['customer_name']) ?></div>
-                        <?php if($r['customer_phone']): ?>
-                            <div class="small dim mono"><?= htmlspecialchars($r['customer_phone']) ?></div>
-                        <?php endif; ?>
-                        <div class="dim small"><?= timeAgo($r['created_at']) ?></div>
-                    </td>
-                    <td>
-                        <?php 
-                        $p_class = match($r['status']) {
-                            'Ready' => 'pill-blue',
-                            'Delivered' => 'pill-green',
-                            'Cancelled' => 'pill-red',
-                            'In-Progress' => 'pill-yellow',
-                            default => ''
-                        };
-                        ?>
-                        <span class="pill <?= $p_class ?>"><?= $r['status'] ?></span>
-                    </td>
-                    <td class="mono <?= $bal > 0 ? 'red-text' : 'green-text' ?>">
-                        <?= $bal > 0 ? money($bal) : 'Paid' ?>
-                    </td>
-                    <td>
-                        <a href="repair_details.php?id=<?= $r['id'] ?>" class="btn btn-xs btn-outline">Manage</a>
-                    </td>
-                </tr>
+                    <tr>
+                        <td class="mono small">#REP-<?= mb_str_pad((string)$r['id'], 4, '0', STR_PAD_LEFT) ?></td>
+                        <td>
+                            <div class="bold accent-text">
+                                <?= htmlspecialchars($r['device_model']) ?>
+                                <?php if (!empty($r['quality'])): ?> <span class="bold" style="color:var(--text); opacity:0.8">[<?= htmlspecialchars($r['quality']) ?>]</span><?php endif; ?>
+                            </div>
+                            <div class="tag" style="font-size:0.65rem; padding:1px 5px;"><?= htmlspecialchars($r['category'] ?? 'Repair') ?></div>
+                            <div class="dim small"><?= htmlspecialchars($r['issue_description']) ?></div>
+                        </td>
+                        <td>
+                            <div class="bold"><?= htmlspecialchars($r['customer_name']) ?></div>
+                            <?php if ($r['customer_phone']): ?>
+                                <div class="small dim mono"><?= htmlspecialchars($r['customer_phone']) ?></div>
+                            <?php endif; ?>
+                            <div class="dim small"><?= timeAgo($r['created_at']) ?></div>
+                        </td>
+                        <td>
+                            <?php
+                            $p_class = match ($r['status']) {
+                                'Ready'       => 'pill-blue',
+                                'Delivered'   => 'pill-green',
+                                'Cancelled'   => 'pill-red',
+                                'In-Progress' => 'pill-yellow',
+                                default       => '',
+                            };
+                            ?>
+                            <span class="pill <?= $p_class ?>"><?= $r['status'] ?></span>
+                        </td>
+                        <td class="mono <?= $bal > 0 ? 'red-text' : 'green-text' ?>">
+                            <?= $bal > 0 ? money($bal) : 'Paid' ?>
+                        </td>
+                        <td>
+                            <a href="repair_details.php?id=<?= $r['id'] ?>" class="btn btn-xs btn-outline">Manage</a>
+                        </td>
+                    </tr>
                 <?php endforeach; ?>
-                <?php if(empty($repairs)): ?><tr><td colspan="6" class="empty-state">No repair jobs found.</td></tr><?php endif; ?>
+                <?php if (empty($repairs)): ?><tr>
+                        <td colspan="6" class="empty-state">No repair jobs found.</td>
+                    </tr><?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -253,24 +257,24 @@ echo renderToast($msg, $msg_type);
         <form method="POST" class="modal-form">
             <input type="hidden" name="action" value="add_repair">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-            
+
             <div class="form-row">
                 <div class="form-group" style="grid-column: span 2; background: var(--surface-2); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
                     <label class="small dim" style="margin-bottom: 8px; display: block;">Narrow down Inventory (Filters)</label>
                     <div style="display: flex; gap: 10px; margin-bottom: 12px;">
                         <select id="modal-brand-filter" class="select2-simple" style="flex: 1;">
                             <option value="">— All Brands —</option>
-                            <?php 
+                            <?php
                             $modal_brands = array_unique(array_column($products_for_repair, 'brand'));
                             sort($modal_brands);
-                            foreach($modal_brands as $b): 
+                            foreach ($modal_brands as $b):
                             ?>
                                 <option value="<?= htmlspecialchars($b) ?>"><?= htmlspecialchars($b) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <select id="modal-category-filter" class="select2-simple" style="flex: 1;">
                             <option value="">— All Categories —</option>
-                            <?php foreach($categories as $cat): ?>
+                            <?php foreach ($categories as $cat): ?>
                                 <option value="<?= htmlspecialchars($cat['name']) ?>"><?= htmlspecialchars($cat['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -279,7 +283,7 @@ echo renderToast($msg, $msg_type);
                     <label>Select Part/Device *</label>
                     <select name="product_id" id="repair-product-select">
                         <option value="">— Select from Inventory —</option>
-                        <?php foreach($products_for_repair as $p): ?>
+                        <?php foreach ($products_for_repair as $p): ?>
                             <option value="<?= $p['id'] ?>" data-brand="<?= htmlspecialchars($p['brand']) ?>" data-category="<?= htmlspecialchars($p['category']) ?>" data-name="<?= htmlspecialchars($p['name']) ?>" data-price="<?= $p['selling_price'] ?>">
                                 <?= htmlspecialchars($p['name']) ?> (<?= htmlspecialchars($p['brand']) ?>) - <?= $p['current_stock'] ?> in stock
                             </option>
@@ -291,7 +295,7 @@ echo renderToast($msg, $msg_type);
                     <label>Registered Customer</label>
                     <select name="customer_id" id="cust-sel">
                         <option value="0">Walk-in Customer</option>
-                        <?php foreach($customers as $c): ?>
+                        <?php foreach ($customers as $c): ?>
                             <option value="<?= $c['id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -311,7 +315,7 @@ echo renderToast($msg, $msg_type);
                 <input type="text" name="device_model" id="repair-device-model" required placeholder="e.g. Samsung S22 Ultra">
                 <span class="form-hint" id="device-model-hint"></span>
             </div>
-            
+
             <div class="form-group">
                 <label>Fault / Issue Description *</label>
                 <textarea name="issue_description" rows="2" required placeholder="e.g. Cracked screen, Charging port issues..."></textarea>
@@ -331,93 +335,101 @@ echo renderToast($msg, $msg_type);
 </div>
 
 <script>
-$(document).ready(function() {
-    // Modal Select2s
-    $('#cust-sel, #repair-product-select').select2({ dropdownParent: $('#repair-modal .modal'), width: '100%', closeOnSelect: true });
-    $('#modal-brand-filter, #modal-category-filter').select2({ dropdownParent: $('#repair-modal .modal'), width: '100%', closeOnSelect: true });
-
-    // Handle dynamic device model input based on product selection
-    $('#repair-product-select').on('change', function() {
-        const selectedOption = $(this).find(':selected');
-        const deviceModelInput = $('#repair-device-model');
-        const deviceModelHint = $('#device-model-hint');
-        const costInput = $('#repair-cost-input');
-
-        if (selectedOption.val()) {
-            const productName = selectedOption.data('name');
-            const productBrand = selectedOption.data('brand');
-            const productPrice = selectedOption.data('price');
-            
-            deviceModelInput.val(`${productBrand} ${productName}`).prop('readonly', true);
-            deviceModelHint.text('Pre-filled from inventory.').css('color', 'var(--green)');
-            costInput.val(parseFloat(productPrice).toFixed(2));
-        } else {
-            deviceModelInput.val('').prop('readonly', false);
-            deviceModelHint.text('e.g. Samsung S22 Ultra').css('color', '');
-        }
-    }).trigger('change'); // Trigger on load to set initial state
-
-    // Consolidate modal opening and resetting
-    window.openNewJobModal = function() {
-        const $form = $('#repair-modal form');
-        $form[0].reset();
-        
-        // Clear visual states not handled by native reset
-        $('#repair-device-model').prop('readonly', false);
-        $('#device-model-hint').text('').css('color', '');
-        
-        // Reset Select2s silently then refresh modal inventory
-        $('#cust-sel').val('0').trigger('change.select2');
-        $('#repair-product-select, #modal-brand-filter, #modal-category-filter').val('').trigger('change.select2');
-        
-        filterModalProducts();
-        $('#repair-modal').css('display', 'flex');
-    };
-
-    // Modal Inventory Filtering Logic
-    const allRepairProducts = <?= json_encode($products_for_repair) ?>;
-    
-    function filterModalProducts() {
-        const brand = $('#modal-brand-filter').val();
-        const cat = $('#modal-category-filter').val();
-        const $select = $('#repair-product-select');
-
-        let filtered = allRepairProducts.filter(p => {
-            return (!brand || p.brand === brand) && (!cat || p.category === cat);
+    $(document).ready(function() {
+        // Modal Select2s
+        $('#cust-sel, #repair-product-select').select2({
+            dropdownParent: $('#repair-modal .modal'),
+            width: '100%',
+            closeOnSelect: true
+        });
+        $('#modal-brand-filter, #modal-category-filter').select2({
+            dropdownParent: $('#repair-modal .modal'),
+            width: '100%',
+            closeOnSelect: true
         });
 
-        $select.empty().append('<option value="">— Select from Inventory —</option>');
-        filtered.forEach(p => {
-            const option = new Option(`${p.name} (${p.brand}) - ${p.current_stock} in stock`, p.id, false, false);
-            option.setAttribute('data-brand', p.brand);
-            option.setAttribute('data-category', p.category);
-            option.setAttribute('data-name', p.name);
-            $select.append(option);
+        // Handle dynamic device model input based on product selection
+        $('#repair-product-select').on('change', function() {
+            const selectedOption = $(this).find(':selected');
+            const deviceModelInput = $('#repair-device-model');
+            const deviceModelHint = $('#device-model-hint');
+            const costInput = $('#repair-cost-input');
+
+            if (selectedOption.val()) {
+                const productName = selectedOption.data('name');
+                const productBrand = selectedOption.data('brand');
+                const productPrice = selectedOption.data('price');
+
+                deviceModelInput.val(`${productBrand} ${productName}`).prop('readonly', true);
+                deviceModelHint.text('Pre-filled from inventory.').css('color', 'var(--green)');
+                costInput.val(parseFloat(productPrice).toFixed(2));
+            } else {
+                deviceModelInput.val('').prop('readonly', false);
+                deviceModelHint.text('e.g. Samsung S22 Ultra').css('color', '');
+            }
+        }).trigger('change'); // Trigger on load to set initial state
+
+        // Consolidate modal opening and resetting
+        window.openNewJobModal = function() {
+            const $form = $('#repair-modal form');
+            $form[0].reset();
+
+            // Clear visual states not handled by native reset
+            $('#repair-device-model').prop('readonly', false);
+            $('#device-model-hint').text('').css('color', '');
+
+            // Reset Select2s silently then refresh modal inventory
+            $('#cust-sel').val('0').trigger('change.select2');
+            $('#repair-product-select, #modal-brand-filter, #modal-category-filter').val('').trigger('change.select2');
+
+            filterModalProducts();
+            $('#repair-modal').css('display', 'flex');
+        };
+
+        // Modal Inventory Filtering Logic
+        const allRepairProducts = <?= json_encode($products_for_repair) ?>;
+
+        function filterModalProducts() {
+            const brand = $('#modal-brand-filter').val();
+            const cat = $('#modal-category-filter').val();
+            const $select = $('#repair-product-select');
+
+            let filtered = allRepairProducts.filter(p => {
+                return (!brand || p.brand === brand) && (!cat || p.category === cat);
+            });
+
+            $select.empty().append('<option value="">— Select from Inventory —</option>');
+            filtered.forEach(p => {
+                const option = new Option(`${p.name} (${p.brand}) - ${p.current_stock} in stock`, p.id, false, false);
+                option.setAttribute('data-brand', p.brand);
+                option.setAttribute('data-category', p.category);
+                option.setAttribute('data-name', p.name);
+                $select.append(option);
+            });
+
+            // Refresh Select2 visual state
+            $select.trigger('change.select2');
+
+            // If only one item remains after filtering, auto-select it for speed
+            if (filtered.length === 1) {
+                $select.val(filtered[0].id).trigger('change');
+            }
+        }
+
+        $('#modal-brand-filter, #modal-category-filter').on('change', filterModalProducts);
+
+
+        $('#cust-sel').on('change', function() {
+            const isWalkIn = $(this).val() == "0";
+            if (!isWalkIn) {
+                $('#walk-in-name').prop('readonly', true).val('Account Selected');
+                $('#walk-in-phone').prop('readonly', true).val('Account Selected');
+            } else {
+                $('#walk-in-name').prop('readonly', false).val('');
+                $('#walk-in-phone').prop('readonly', false).val('');
+            }
         });
-
-        // Refresh Select2 visual state
-        $select.trigger('change.select2');
-        
-        // If only one item remains after filtering, auto-select it for speed
-        if (filtered.length === 1) {
-            $select.val(filtered[0].id).trigger('change');
-        }
-    }
-
-    $('#modal-brand-filter, #modal-category-filter').on('change', filterModalProducts);
-
-
-    $('#cust-sel').on('change', function() {
-        const isWalkIn = $(this).val() == "0";
-        if (!isWalkIn) {
-            $('#walk-in-name').prop('readonly', true).val('Account Selected');
-            $('#walk-in-phone').prop('readonly', true).val('Account Selected');
-        } else {
-            $('#walk-in-name').prop('readonly', false).val('');
-            $('#walk-in-phone').prop('readonly', false).val('');
-        }
     });
-});
 </script>
 
 <?php require_once 'includes/footer.php'; ?>

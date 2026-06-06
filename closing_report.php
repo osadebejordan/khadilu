@@ -139,27 +139,29 @@ require_once 'includes/header.php';
             </thead>
             <tbody>
                 <?php foreach ($details as $row): ?>
-                <tr>
-                    <td class="mono small dim"><?= date('H:i:s', strtotime($row['created_at'])) ?></td>
-                    <td><span class="tag"><?= $row['category'] ?></span></td>
-                    <td class="bold"><?= htmlspecialchars($row['party']) ?></td>
-                    <td>
-                        <?php 
-                        $m_class = match($row['payment_method']) {
-                            'Cash' => 'pill-green',
-                            'POS' => 'pill-blue',
-                            'Transfer' => 'pill-yellow',
-                            default => ''
-                        };
-                        ?>
-                        <span class="pill <?= $m_class ?>"><?= $row['payment_method'] ?></span>
-                    </td>
-                    <td class="mono bold accent-text"><?= money($row['amount']) ?></td>
-                    <td class="small dim italic"><?= htmlspecialchars($row['notes'] ?: '—') ?></td>
-                </tr>
+                    <tr>
+                        <td class="mono small dim"><?= date('H:i:s', strtotime($row['created_at'])) ?></td>
+                        <td><span class="tag"><?= $row['category'] ?></span></td>
+                        <td class="bold"><?= htmlspecialchars($row['party']) ?></td>
+                        <td>
+                            <?php
+                            $m_class = match ($row['payment_method']) {
+                                'Cash'     => 'pill-green',
+                                'POS'      => 'pill-blue',
+                                'Transfer' => 'pill-yellow',
+                                default    => '',
+                            };
+                            ?>
+                            <span class="pill <?= $m_class ?>"><?= $row['payment_method'] ?></span>
+                        </td>
+                        <td class="mono bold accent-text"><?= money($row['amount']) ?></td>
+                        <td class="small dim italic"><?= htmlspecialchars($row['notes'] ?: '—') ?></td>
+                    </tr>
                 <?php endforeach; ?>
                 <?php if (empty($details)): ?>
-                <tr><td colspan="6" class="empty-state">No financial activity recorded for this date.</td></tr>
+                    <tr>
+                        <td colspan="6" class="empty-state">No financial activity recorded for this date.</td>
+                    </tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -181,26 +183,28 @@ require_once 'includes/header.php';
             </thead>
             <tbody>
                 <?php foreach ($daily_expenses as $row): ?>
-                <tr>
-                    <td>
-                        <?php 
-                        $c_class = match($row['category']) {
-                            'Rent' => 'pill-blue',
-                            'Electricity' => 'pill-yellow',
-                            'Salary' => 'pill-green',
-                            'Marketing' => 'pill-purple',
-                            'Transport' => 'pill-dim',
-                            default => ''
-                        };
-                        ?>
-                        <span class="pill <?= $c_class ?>"><?= htmlspecialchars($row['category']) ?></span>
-                    </td>
-                    <td class="small dim"><?= htmlspecialchars($row['description'] ?: '—') ?></td>
-                    <td class="mono bold red-text"><?= money($row['amount']) ?></td>
-                </tr>
+                    <tr>
+                        <td>
+                            <?php
+                            $c_class = match ($row['category']) {
+                                'Rent'        => 'pill-blue',
+                                'Electricity' => 'pill-yellow',
+                                'Salary'      => 'pill-green',
+                                'Marketing'   => 'pill-purple',
+                                'Transport'   => 'pill-dim',
+                                default       => '',
+                            };
+                            ?>
+                            <span class="pill <?= $c_class ?>"><?= htmlspecialchars($row['category']) ?></span>
+                        </td>
+                        <td class="small dim"><?= htmlspecialchars($row['description'] ?: '—') ?></td>
+                        <td class="mono bold red-text"><?= money($row['amount']) ?></td>
+                    </tr>
                 <?php endforeach; ?>
                 <?php if (empty($daily_expenses)): ?>
-                <tr><td colspan="3" class="empty-state">No operating expenses recorded for this date.</td></tr>
+                    <tr>
+                        <td colspan="3" class="empty-state">No operating expenses recorded for this date.</td>
+                    </tr>
                 <?php endif; ?>
             </tbody>
         </table>
@@ -208,13 +212,37 @@ require_once 'includes/header.php';
 </div>
 
 <style>
-@media print {
-    .no-print, .sidebar, .sidebar-overlay { display: none !important; }
-    .main-content { margin-left: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; }
-    .report-header-print { display: block !important; }
-    .card, .stat-card { border: 1px solid #ccc !important; box-shadow: none !important; background: #fff !important; }
-    .stat-value, .accent-text { color: #000 !important; }
-}
+    @media print {
+
+        .no-print,
+        .sidebar,
+        .sidebar-overlay {
+            display: none !important;
+        }
+
+        .main-content {
+            margin-left: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            color: #000 !important;
+        }
+
+        .report-header-print {
+            display: block !important;
+        }
+
+        .card,
+        .stat-card {
+            border: 1px solid #ccc !important;
+            box-shadow: none !important;
+            background: #fff !important;
+        }
+
+        .stat-value,
+        .accent-text {
+            color: #000 !important;
+        }
+    }
 </style>
 
 <?php require_once 'includes/footer.php'; ?>

@@ -1,0 +1,5 @@
+# Custom Error Pages
+ErrorDocument 404 /khadilu/404.php
+
+# Optional: Prevent directory browsing for security
+Options -Indexes

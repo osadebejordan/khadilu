@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } else {
         try {
             $id = intval($_POST['expense_id'] ?? 0);
-            
+
             // Retrieve details for the audit log before deleting
             $info_stmt = $conn->prepare("SELECT amount, category FROM business_expenses WHERE id = ?");
             $info_stmt->bind_param("i", $id);
@@ -102,6 +102,13 @@ $filter_category = $_GET['category'] ?? '';
 $where_clauses = ["expense_date BETWEEN ? AND ?"];
 $bind_params = [$start_date, $end_date];
 $bind_types = 'ss';
+
+// Pre-flight check: Ensure the table exists to prevent fatal crash on PHP 8.3
+try {
+    $conn->query("SELECT 1 FROM business_expenses LIMIT 1");
+} catch (mysqli_sql_exception $e) {
+    die("<div class='alert alert-error'>The 'business_expenses' table is missing. Please run the <a href='db_check.php'>Database Health Check</a> to create it automatically.</div>");
+}
 
 if (!empty($filter_category)) {
     $where_clauses[] = "category = ?";
@@ -155,7 +162,7 @@ require_once 'includes/header.php';
                 <label class="small dim">Category</label>
                 <select name="category" class="select2-simple" style="height: 34px; padding: 0 5px;">
                     <option value="">— All Categories —</option>
-                    <?php foreach($categories as $cat): ?>
+                    <?php foreach ($categories as $cat): ?>
                         <option value="<?= $cat ?>" <?= $filter_category === $cat ? 'selected' : '' ?>><?= $cat ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -187,7 +194,7 @@ require_once 'includes/header.php';
             <div class="form-group">
                 <label for="category">Expense Category *</label>
                 <select name="category" id="category" required class="select2-simple">
-                    <?php foreach($categories as $cat): ?>
+                    <?php foreach ($categories as $cat): ?>
                         <option value="<?= $cat ?>"><?= $cat ?></option>
                     <?php endforeach; ?>
                 </select>
@@ -231,38 +238,41 @@ require_once 'includes/header.php';
                 </thead>
                 <tbody>
                     <?php foreach ($expenses as $e): ?>
-                    <tr>
-                        <td class="mono small dim"><?= date('d M Y', strtotime($e['expense_date'])) ?></td>
-                        <td>
-                            <?php 
-                            $c_class = match($e['category']) {
-                                'Rent' => 'pill-blue',
-                                'Electricity' => 'pill-yellow',
-                                'Salary' => 'pill-green',
-                                'Marketing' => 'pill-purple',
-                                'Transport' => 'pill-dim',
-                                default => ''
-                            };
-                            ?>
-                            <span class="pill <?= $c_class ?>"><?= htmlspecialchars($e['category']) ?></span>
-                        </td>
-                        <td class="small"><?= htmlspecialchars($e['full_name'] ?? 'System') ?></td>
-                        <td class="small dim" style="max-width: 200px; word-wrap: break-word;"><?= htmlspecialchars($e['description'] ?: '—') ?></td>
-                        <td class="mono bold red-text"><?= money($e['amount']) ?></td>
-                        <td style="text-align:right">
-                            <form method="POST" onsubmit="return confirm('Are you sure you want to delete this expense log?')" style="display:inline;">
-                                <input type="hidden" name="action" value="delete_expense">
-                                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                                <input type="hidden" name="expense_id" value="<?= $e['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-danger">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
+                        <tr>
+                            <td class="mono small dim"><?= date('d M Y', strtotime($e['expense_date'])) ?></td>
+                            <td>
+                                <?php
+                                $c_class = match ($e['category']) {
+                                    'Rent'        => 'pill-blue',
+                                    'Electricity' => 'pill-yellow',
+                                    'Salary'      => 'pill-green',
+                                    'Marketing'   => 'pill-purple',
+                                    'Transport'   => 'pill-dim',
+                                    default       => '',
+                                };
+                                ?>
+                                <span class="pill <?= $c_class ?>"><?= htmlspecialchars($e['category']) ?></span>
+                            </td>
+                            <td class="small"><?= htmlspecialchars($e['full_name'] ?? 'System') ?></td>
+                            <td class="small dim" style="max-width: 200px; word-wrap: break-word;"><?= htmlspecialchars($e['description'] ?: '—') ?></td>
+                            <td class="mono bold red-text"><?= money($e['amount']) ?></td>
+                            <td style="text-align:right">
+                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete this expense log?')" style="display:inline;">
+                                    <input type="hidden" name="action" value="delete_expense">
+                                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                    <input type="hidden" name="expense_id" value="<?= $e['id'] ?>">
+                                    <button type="submit" class="btn btn-xs btn-danger">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
                     <?php if (empty($expenses)): ?>
-                    <tr>
-                        <td colspan="6" class="empty-state">No operating expenses recorded for this period.</td>
-                    </tr>
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                <p>No operating expenses recorded for this period.</p>
+                                <button onclick="document.getElementById('amount').focus()" class="btn btn-xs btn-outline">Log your first expense</button>
+                            </td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -271,12 +281,12 @@ require_once 'includes/header.php';
 </div>
 
 <script>
-$(document).ready(function() {
-    $('.select2-simple').select2({
-        width: '100%',
-        closeOnSelect: true
+    $(document).ready(function() {
+        $('.select2-simple').select2({
+            width: '100%',
+            closeOnSelect: true
+        });
     });
-});
 </script>
 
 <?php require_once 'includes/footer.php'; ?>

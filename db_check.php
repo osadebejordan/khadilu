@@ -16,7 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['apply_fix'])) {
     if ($sql_to_run) {
         try {
             $conn->multi_query($sql_to_run);
-            while ($conn->more_results() && $conn->next_result()) { ; } // Flush multi-results
+            while ($conn->more_results() && $conn->next_result()) {;
+            } // Flush multi-results
             echo "<div class='alert alert-success'>✅ Database fixes applied successfully!</div>";
         } catch (Exception $e) {
             log_error($e, 'DB_FIX_APPLY');
@@ -38,8 +39,9 @@ $required_schema = [
     'customer_payments' => ['id', 'customer_id', 'user_id', 'amount', 'payment_method'],
     'system_audit_log' => ['id', 'user_id', 'action', 'details'],
     'categories' => ['id', 'name'],
-    'qualities' => ['id', 'name', 'category_name']
- ];
+    'qualities' => ['id', 'name', 'category_name'],
+    'business_expenses' => ['id', 'user_id', 'category', 'amount', 'description', 'expense_date']
+];
 
 echo "<div class='card' style='padding:20px;'>";
 echo "<h3>🔍 Running System Diagnostics...</h3><br>";
@@ -49,86 +51,48 @@ $fix_sql = "";
 
 foreach ($required_schema as $table => $columns) {
     echo "<div style='margin-bottom:15px;'><strong>Table: $table</strong><br>";
-    
+
     // Check if table exists
     $table_check = $conn->query("SHOW TABLES LIKE '$table'");
     if ($table_check->num_rows == 0) {
         echo "<span class='red-text'>❌ Table '$table' is missing!</span><br>";
         $missing_anything = true;
-        
-        if ($table === 'stock_returns') {
-            $fix_sql .= "CREATE TABLE stock_returns (
+
+        $fix_sql .= match ($table) {
+            'stock_returns' => "CREATE TABLE stock_returns (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 product_id INT NOT NULL,
-                customer_id INT DEFAULT NULL,
-                outflow_id INT DEFAULT NULL,
-                user_id INT NOT NULL,
-                quantity INT NOT NULL,
-                refund_amount DECIMAL(12,2) DEFAULT 0.00,
-                notes TEXT,
-                status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
-            ); ";
-        } elseif ($table === 'repairs') {
-            $fix_sql .= "CREATE TABLE repairs (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                product_id INT DEFAULT NULL,
-                customer_id INT DEFAULT NULL,
-                customer_name VARCHAR(150) NOT NULL,
-                customer_phone VARCHAR(20),
-                device_model VARCHAR(150) NOT NULL,
-                issue_description TEXT NOT NULL,
-                status ENUM('Received', 'In-Progress', 'Ready', 'Delivered', 'Cancelled') DEFAULT 'Received',
-                estimated_cost DECIMAL(12,2) DEFAULT 0.00,
-                amount_paid DECIMAL(12,2) DEFAULT 0.00,
-                user_id INT NOT NULL,
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
-                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
-            ); ";
-        }
-        elseif ($table === 'sales_transactions') {
-            $fix_sql .= "CREATE TABLE sales_transactions (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                customer_id INT DEFAULT NULL,
-                customer_name VARCHAR(120) NOT NULL,
-                user_id INT NOT NULL,
-                total_cart_value DECIMAL(12,2) NOT NULL,
-                total_paid DECIMAL(12,2) NOT NULL,
-                payment_method ENUM('Cash','Transfer','POS','Other') DEFAULT 'Cash',
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
-            ); ";
-        }
-        elseif ($table === 'system_audit_log') {
-            $fix_sql .= "CREATE TABLE system_audit_log (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                user_id INT NOT NULL,
-                action VARCHAR(50) NOT NULL,
-                table_name VARCHAR(50),
-                record_id INT,
-                details TEXT,
-                ip_address VARCHAR(45),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-            ); ";
-        }
-        elseif ($table === 'customer_payments') {
-            $fix_sql .= "CREATE TABLE customer_payments (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                customer_id INT NOT NULL,
-                user_id INT NOT NULL,
-                amount DECIMAL(12,2) NOT NULL,
-                payment_method ENUM('Cash', 'POS', 'Transfer', 'Other') DEFAULT 'Cash',
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
-            ); ";
-        }
+                customer_id INT DEFAULT NULL, outflow_id INT DEFAULT NULL, user_id INT NOT NULL,
+                quantity INT NOT NULL, refund_amount DECIMAL(12,2) DEFAULT 0.00, notes TEXT,
+                status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT); ",
+            'repairs' => "CREATE TABLE repairs (
+                id INT AUTO_INCREMENT PRIMARY KEY, product_id INT DEFAULT NULL, customer_id INT DEFAULT NULL,
+                customer_name VARCHAR(150) NOT NULL, customer_phone VARCHAR(20), device_model VARCHAR(150) NOT NULL,
+                issue_description TEXT NOT NULL, status ENUM('Received', 'In-Progress', 'Ready', 'Delivered', 'Cancelled') DEFAULT 'Received',
+                estimated_cost DECIMAL(12,2) DEFAULT 0.00, amount_paid DECIMAL(12,2) DEFAULT 0.00, user_id INT NOT NULL,
+                notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL, FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL); ",
+            'sales_transactions' => "CREATE TABLE sales_transactions (
+                id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT DEFAULT NULL, customer_name VARCHAR(120) NOT NULL,
+                user_id INT NOT NULL, total_cart_value DECIMAL(12,2) NOT NULL, total_paid DECIMAL(12,2) NOT NULL,
+                payment_method ENUM('Cash','Transfer','POS','Other') DEFAULT 'Cash', notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL); ",
+            'system_audit_log' => "CREATE TABLE system_audit_log (
+                id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, action VARCHAR(50) NOT NULL,
+                table_name VARCHAR(50), record_id INT, details TEXT, ip_address VARCHAR(45),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE); ",
+            'customer_payments' => "CREATE TABLE customer_payments (
+                id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT NOT NULL, user_id INT NOT NULL,
+                amount DECIMAL(12,2) NOT NULL, payment_method ENUM('Cash', 'POS', 'Transfer', 'Other') DEFAULT 'Cash',
+                notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE); ",
+            'business_expenses' => "CREATE TABLE business_expenses (
+                id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, 
+                category ENUM('Rent', 'Electricity', 'Salary', 'Marketing', 'Transport', 'Others') DEFAULT 'Others',
+                amount DECIMAL(12,2) NOT NULL, description TEXT, expense_date DATE DEFAULT (CURRENT_DATE),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP); ",
+            default => ""
+        };
         continue;
     }
 
@@ -137,7 +101,7 @@ foreach ($required_schema as $table => $columns) {
         $col_check = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$col'");
         if ($col_check->num_rows == 0) {
             echo "<span class='red-text'>❌ Missing Column: '$col'</span><br>";
-            
+
             // Generate the fix
             $fix_sql .= "ALTER TABLE `$table` ADD COLUMN `$col` ";
             if ($col == 'role') $fix_sql .= "ENUM('admin', 'staff', 'sub-admin') DEFAULT 'staff' AFTER password; ";
@@ -158,7 +122,7 @@ foreach ($required_schema as $table => $columns) {
             elseif ($col == 'low_stock_threshold') $fix_sql .= "INT DEFAULT 3 AFTER cost_price; ";
             elseif ($col == 'type') $fix_sql .= "ENUM('Retail', 'Repair', 'Both') DEFAULT 'Retail' AFTER phone; ";
             elseif ($col == 'supplier_phone') $fix_sql .= "VARCHAR(20) AFTER supplier; ";
-            
+
             // For system_audit_log
             elseif ($col == 'action') $fix_sql .= "VARCHAR(50) NOT NULL AFTER user_id; ";
             elseif ($col == 'details') $fix_sql .= "TEXT AFTER record_id; ";
@@ -176,7 +140,7 @@ foreach ($required_schema as $table => $columns) {
 
 // --- Specific Check for Sub-Admin Role ENUM ---
 $role_info = $conn->query("SHOW COLUMNS FROM users LIKE 'role'")->fetch_assoc();
-if ($role_info && strpos($role_info['Type'], 'sub-admin') === false) {
+if ($role_info && !str_contains($role_info['Type'], 'sub-admin')) {
     echo "<div style='margin-bottom:15px;'><span class='red-text'>❌ Role ENUM is outdated (missing 'sub-admin')</span><br></div>";
     $missing_anything = true;
     $fix_sql .= "ALTER TABLE users MODIFY COLUMN role ENUM('admin', 'staff', 'sub-admin') DEFAULT 'staff'; ";
@@ -207,7 +171,7 @@ if ($missing_anything) {
     echo "<strong>Mismatch Detected!</strong><br>Your database is behind your code. Run the SQL below in phpMyAdmin to fix it:";
     echo "<pre style='background:#000; padding:15px; margin-top:10px; color:#00d4aa; overflow-x:auto;'>$fix_sql</pre>";
     echo "<form method='POST' style='margin-top:15px;'>";
-    echo "<input type='hidden' name='sql_to_run' value='".htmlspecialchars($fix_sql)."'>";
+    echo "<input type='hidden' name='sql_to_run' value='" . htmlspecialchars($fix_sql) . "'>";
     echo "<button type='submit' name='apply_fix' class='btn btn-primary'>Apply Fixes Automatically</button>";
     echo "</form>";
     echo "</div>";
@@ -217,4 +181,3 @@ if ($missing_anything) {
 
 echo "</div>";
 require_once 'includes/footer.php';
-?>
