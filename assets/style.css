@@ -283,7 +283,7 @@ h1, h2, h3, h4 { font-family: var(--font-heading), sans-serif; font-weight: 700;
 .badge-red    { background: var(--red-dim);    color: var(--red); }
 .badge-yellow { background: var(--yellow-dim); color: var(--yellow); }
 
-.sidebar-bottom { padding: 16px; border-top: 1px solid var(--border); margin-top: auto; }
+.sidebar-bottom { padding: 16px; border-top: 1px solid var(--border); margin-top: auto; display: flex; flex-direction: column; gap: 4px; }
 .sidebar-user {
   display: flex; align-items: center; gap: 10px; 
   padding: 10px; border-radius: var(--radius);
@@ -302,16 +302,22 @@ h1, h2, h3, h4 { font-family: var(--font-heading), sans-serif; font-weight: 700;
   font-size: 1rem; flex-shrink: 0;
 }
 .user-info { flex: 1; min-width: 0; }
-.user-name { font-weight: 700; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.user-role { font-size: 0.68rem; color: var(--text-dim dimmer); text-transform: uppercase; letter-spacing: .05em; }
+.user-name { font-weight: 700; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.user-role { font-size: 0.68rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: .05em; }
 .logout-btn {
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 700; font-size: 0.85rem; padding: 10px; margin-top: 12px;
-  background: var(--red-dim); border-radius: var(--radius-sm); 
-  color: var(--red); transition: all .15s; cursor: pointer; width: 100%;
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 16px; border-radius: var(--radius-sm);
+  color: var(--red); font-weight: 700; font-size: 0.82rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  margin-top: 8px;
+  background: var(--red-dim);
 }
 .logout-btn:hover { 
-  background: rgba(255,107,107,0.2); filter: brightness(1.2);
+  background: var(--red); 
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--red-dim);
 }
 
 /* ── Page Header & Layout Sectioning ──────────── */
@@ -650,6 +656,7 @@ select option { background: var(--surface-2); color: var(--text); }
 .select2-container--default.select2-container--focus .select2-selection--single {
     border-color: var(--accent) !important;
 }
+.select2-container--default .select2-selection--single:hover { border-color: var(--border-l) !important; }
 
 .select2-container--default .select2-selection--single.filter-active {
     border-color: var(--accent) !important;
@@ -674,29 +681,36 @@ select option { background: var(--surface-2); color: var(--text); }
 
 .select2-dropdown {
     background-color: var(--surface-2) !important;
-    border: 1px solid var(--accent) !important;
-    border-radius: var(--radius-sm) !important;
-    box-shadow: var(--shadow);
+    border: 1px solid var(--border-l) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: 0 15px 45px rgba(0,0,0,0.4) !important;
     color: var(--text) !important;
+    overflow: hidden;
+    z-index: 20005 !important;
 }
+
+.theme-corporate-dark .select2-dropdown, .theme-cyber-original .select2-dropdown { box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important; }
 
 .select2-container--default .select2-search--dropdown .select2-search__field {
     background-color: var(--surface-3) !important;
-    border: 1px solid var(--border) !important;
+    border: 1px solid var(--border-l) !important;
     color: var(--text) !important;
     border-radius: var(--radius-sm) !important;
+    margin: 8px !important;
+    width: calc(100% - 16px) !important;
+    padding: 10px !important;
 }
 
 .select2-container--default .select2-search--dropdown .select2-search__field:focus {
     border-color: var(--accent) !important;
+    box-shadow: none !important;
     outline: none !important;
 }
 
 .select2-container--default .select2-results__option--highlighted[aria-selected],
 .select2-container--default .select2-results__option--highlighted.select2-results__option--selectable {
-    background-color: var(--surface-3) !important;
-    color: var(--accent) !important;
-    font-weight: 700;
+    background-color: var(--accent) !important;
+    color: #fff !important;
 }
 
 .select2-results__option {

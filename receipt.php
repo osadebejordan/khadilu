@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+
 requireLogin();
 
 $transaction_id = intval($_GET['txn_id'] ?? 0);
@@ -28,35 +29,124 @@ $page_title = 'Receipt #TXN-' . str_pad($transaction['id'], 4, '0', STR_PAD_LEFT
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $page_title ?></title>
     <link rel="stylesheet" href="assets/style.css">
     <style>
-        body { background: #fff; color: #333; font-family: 'Inter', sans-serif; padding: 20px; }
-        .receipt-container { max-width: 500px; margin: 0 auto; border: 1px solid #eee; padding: 25px; box-shadow: 0 0 10px rgba(0,0,0,0.1); background: #fff; }
-        .receipt-header { text-align: center; margin-bottom: 20px; }
-        .receipt-header h1 { font-size: 1.8rem; margin-bottom: 5px; color: #00d4aa; }
-        .receipt-header p { font-size: 0.9rem; color: #666; }
-        .receipt-details { margin-bottom: 20px; border-top: 1px dashed #ccc; border-bottom: 1px dashed #ccc; padding: 10px 0; }
-        .receipt-details div { display: flex; justify-content: space-between; margin-bottom: 5px; }
-        .receipt-details div span:first-child { font-weight: bold; }
-        .receipt-items table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-        .receipt-items th, .receipt-items td { padding: 8px 0; text-align: left; border-bottom: 1px solid #eee; }
-        .receipt-items th { font-size: 0.8rem; text-transform: uppercase; color: #666; }
-        .receipt-items td { font-size: 0.9rem; }
-        .receipt-items .total-row { font-weight: bold; border-top: 2px solid #333; }
-        .receipt-footer { text-align: center; font-size: 0.8rem; color: #666; margin-top: 20px; }
-        .receipt-footer p { margin-bottom: 5px; }
-        .print-button { text-align: center; margin-top: 20px; }
+        body {
+            background: #fff;
+            color: #333;
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+        }
+
+        .receipt-container {
+            max-width: 500px;
+            margin: 0 auto;
+            border: 1px solid #eee;
+            padding: 25px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background: #fff;
+        }
+
+        .receipt-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .receipt-header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: #00d4aa;
+        }
+
+        .receipt-header p {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .receipt-details {
+            margin-bottom: 20px;
+            border-top: 1px dashed #ccc;
+            border-bottom: 1px dashed #ccc;
+            padding: 10px 0;
+        }
+
+        .receipt-details div {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .receipt-details div span:first-child {
+            font-weight: bold;
+        }
+
+        .receipt-items table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .receipt-items th,
+        .receipt-items td {
+            padding: 8px 0;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        .receipt-items th {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #666;
+        }
+
+        .receipt-items td {
+            font-size: 0.9rem;
+        }
+
+        .receipt-items .total-row {
+            font-weight: bold;
+            border-top: 2px solid #333;
+        }
+
+        .receipt-footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .receipt-footer p {
+            margin-bottom: 5px;
+        }
+
+        .print-button {
+            text-align: center;
+            margin-top: 20px;
+        }
+
         @media print {
-            body { background: #fff; padding: 0; }
-            .receipt-container { border: none; box-shadow: none; }
-            .print-button { display: none; }
+            body {
+                background: #fff;
+                padding: 0;
+            }
+
+            .receipt-container {
+                border: none;
+                box-shadow: none;
+            }
+
+            .print-button {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="receipt-container">
         <div class="receipt-header">
@@ -84,12 +174,12 @@ $page_title = 'Receipt #TXN-' . str_pad($transaction['id'], 4, '0', STR_PAD_LEFT
                 </thead>
                 <tbody>
                     <?php foreach ($items as $item): ?>
-                    <tr>
-                        <td><?= htmlspecialchars($item['product_name']) ?> <span class="bold">[<?= htmlspecialchars($item['quality']) ?>]</span></td>
-                        <td><?= $item['quantity'] ?></td>
-                        <td><?= money($item['price_per_unit']) ?></td>
-                        <td><?= money($item['total_amount']) ?></td>
-                    </tr>
+                        <tr>
+                            <td><?= htmlspecialchars($item['product_name']) ?> <span class="bold">[<?= htmlspecialchars($item['quality']) ?>]</span></td>
+                            <td><?= $item['quantity'] ?></td>
+                            <td><?= money($item['price_per_unit']) ?></td>
+                            <td><?= money($item['total_amount']) ?></td>
+                        </tr>
                     <?php endforeach; ?>
                     <tr class="total-row">
                         <td colspan="3">Subtotal:</td>
@@ -100,10 +190,10 @@ $page_title = 'Receipt #TXN-' . str_pad($transaction['id'], 4, '0', STR_PAD_LEFT
                         <td><?= money($transaction['total_paid']) ?></td>
                     </tr>
                     <?php if ($transaction['total_cart_value'] > $transaction['total_paid']): ?>
-                    <tr class="total-row">
-                        <td colspan="3">Balance Due:</td>
-                        <td><?= money($transaction['total_cart_value'] - $transaction['total_paid']) ?></td>
-                    </tr>
+                        <tr class="total-row">
+                            <td colspan="3">Balance Due:</td>
+                            <td><?= money($transaction['total_cart_value'] - $transaction['total_paid']) ?></td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -118,4 +208,5 @@ $page_title = 'Receipt #TXN-' . str_pad($transaction['id'], 4, '0', STR_PAD_LEFT
         <button onclick="window.print()" class="btn btn-primary">Print Receipt</button>
     </div>
 </body>
+
 </html>

@@ -248,14 +248,16 @@ $out_of_stock_count = ($out_of_stock_q) ? ($out_of_stock_q->fetch_assoc()['cnt']
           <div class="user-role"><?= ucfirst($user['role']) ?></div>
         </div>
       </a>
-      <a href="logout.php" class="logout-btn" title="Logout" onclick="return confirm('Are you sure you want to logout?')">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon" style="margin-right:8px; opacity:0.8;">
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-          <polyline points="16 17 21 12 16 7"></polyline>
-          <line x1="21" y1="12" x2="9" y2="12"></line>
-        </svg>
-        <span>Sign Out</span>
-      </a>
+      <div style="padding: 0 12px;">
+        <a href="logout.php" class="logout-btn" title="Logout" onclick="return confirm('Are you sure you want to logout?')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="nav-icon" style="margin:0; opacity:0.9;">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+          <span>Sign Out</span>
+        </a>
+      </div>
     </div>
   </nav>
 

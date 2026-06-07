@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 // =============================================
 //  Khadilu Phone Hub — Database Configuration
 // =============================================
@@ -9,7 +10,7 @@ declare(strict_types=1);
 date_default_timezone_set('Africa/Lagos');
 
 // Security: Disable error display in production to prevent path leakage
-define('DEV_MODE', false); // Set to true to enable debugging
+define('DEV_MODE', true); // Set to true to enable debugging
 define('MAINTENANCE_MODE', false); // Set to true to restrict access to Admins only
 error_reporting(DEV_MODE ? E_ALL : 0);
 ini_set('display_errors', DEV_MODE ? 1 : 0);

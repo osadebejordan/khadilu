@@ -134,7 +134,7 @@ require_once 'includes/header.php';
 ?>
 
 <!-- Filter Bar -->
-<div class="card filter-bar" style="overflow: visible; position: relative;">
+<div class="card filter-bar dropdown-host overlap-top" id="history-filter-container">
   <form method="GET" class="filter-form">
     <div class="form-group">
       <label>Type</label>
@@ -173,7 +173,7 @@ require_once 'includes/header.php';
     </div>
     <div class="form-group">
       <label>Category</label>
-      <select name="category">
+      <select name="category" class="select2-simple <?= $cat_f ? 'filter-active' : '' ?>">
         <option value="">All Categories</option>
         <?php foreach ($categories as $c): ?>
           <option value="<?= htmlspecialchars($c) ?>" <?= $cat_f == $c ? 'selected' : '' ?>><?= htmlspecialchars($c) ?></option>
@@ -269,9 +269,13 @@ require_once 'includes/header.php';
 <script>
   $(document).ready(function() {
     $('.filter-form select').select2({
-      width: '100%',
-      dropdownParent: $('.filter-bar'),
+      width: 'resolve',
+      dropdownParent: $('#history-filter-container'),
       closeOnSelect: true
+    }).on('select2:open', function() {
+      setTimeout(() => {
+        document.querySelector('.select2-search__field').focus();
+      }, 10);
     });
   });
 </script>

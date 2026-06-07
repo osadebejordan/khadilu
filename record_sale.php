@@ -1,6 +1,7 @@
 <?php
 require_once 'config.php';
 require_once 'auth.php';
+
 requireLogin();
 $page_title = 'Record Sale';
 
@@ -151,8 +152,7 @@ echo renderToast($msg, $msg_type);
 
 <div class="two-col">
   <!-- Sale Form -->
-  <div class="card form-card" id="sale-card-container" style="overflow: visible; position: relative;">
-  <div class="card form-card" id="sale-card-container" style="overflow: visible; position: relative; z-index: 100;">
+  <div class="card form-card dropdown-host overlap-top" id="sale-card-container">
     <div class="card-header">
       <h3>New Transaction</h3>
     </div>
@@ -364,6 +364,7 @@ echo renderToast($msg, $msg_type);
   function initializeProductSelect() {
     // Destroys any existing Select2 instance before re-initializing
     $('#product-select').select2({
+      dropdownParent: $('#sale-card-container'),
       placeholder: "Select from Stock...",
       width: '100%',
       closeOnSelect: true,
@@ -382,6 +383,10 @@ echo renderToast($msg, $msg_type);
         }
         return null;
       }
+    }).on('select2:open', function() {
+      setTimeout(() => {
+        document.querySelector('.select2-search__field').focus();
+      }, 10);
     });
   }
 
@@ -389,15 +394,24 @@ echo renderToast($msg, $msg_type);
     initializeProductSelect();
 
     $('#customer-select').select2({
+      dropdownParent: $('#sale-card-container'),
       placeholder: "Select customer...",
       closeOnSelect: true
+    }).on('select2:open', function() {
+      setTimeout(() => {
+        document.querySelector('.select2-search__field').focus();
+      }, 10);
     });
 
     // Initialize filter dropdowns with select2
     $('#brand-filter, #category-filter, #quality-filter').select2({
       dropdownParent: $('#sale-card-container'),
-      width: '100%',
+      width: 'resolve',
       closeOnSelect: true
+    }).on('select2:open', function() {
+      setTimeout(() => {
+        document.querySelector('.select2-search__field').focus();
+      }, 10);
     });
 
     // Attach filterProducts to change event of filter dropdowns
