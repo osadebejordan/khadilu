@@ -21,7 +21,7 @@ if (isset($_GET['edit'])) {
     $stmt->bind_param("i", $edit_id);
     $stmt->execute();
     $edit_user_data = $stmt->get_result()->fetch_assoc();
-    
+
     // Convert comma string back to array for checkbox logic
     $edit_user_data['perms_arr'] = !empty($edit_user_data['permissions']) ? explode(',', $edit_user_data['permissions']) : [];
 }
@@ -43,13 +43,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if (!$full_name || !$username || !$password) {
                 throw new Exception("All fields are required.");
             }
-            
+
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $stmt = $conn->prepare("INSERT INTO users (full_name, username, password, role, permissions) VALUES (?, ?, ?, ?, ?)");
             $stmt->bind_param("sssss", $full_name, $username, $hashed, $role, $perms);
-            
+
             if ($stmt->execute()) {
-                $msg = "User \"" . htmlspecialchars($username) . "\" created successfully."; 
+                $msg = "User \"" . htmlspecialchars($username) . "\" created successfully.";
                 $msg_type = 'success';
             }
         }
@@ -86,11 +86,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             if ($id === $_SESSION['khadilu_user_id']) {
                 throw new Exception("You cannot delete your own account.");
             }
-            
+
             $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
-            $msg = "User deleted."; $msg_type = 'success';
+            $msg = "User deleted.";
+            $msg_type = 'success';
         }
     } catch (Exception $e) {
         log_error($e, 'USER_MANAGEMENT');
@@ -112,7 +113,9 @@ if (isset($_GET['msg']) && $_GET['msg'] === 'updated') {
 <div class="two-col">
     <!-- Registration Form -->
     <div class="card form-card" id="user-form-card">
-        <div class="card-header"><h3><?= $edit_user_data ? 'Edit User: ' . htmlspecialchars($edit_user_data['full_name']) : 'Register New Staff/Admin' ?></h3></div>
+        <div class="card-header">
+            <h3><?= $edit_user_data ? 'Edit User: ' . htmlspecialchars($edit_user_data['full_name']) : 'Register New Staff/Admin' ?></h3>
+        </div>
         <form method="POST" autocomplete="off" id="userForm">
             <input type="hidden" name="action" value="<?= $edit_user_data ? 'update_user' : 'add_user' ?>">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
@@ -143,15 +146,14 @@ if (isset($_GET['msg']) && $_GET['msg'] === 'updated') {
             <div id="permission-zone" style="display: <?= ($edit_user_data['role'] ?? '') === 'sub-admin' ? 'block' : 'none' ?>; background: var(--surface-2); padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px dashed var(--border);">
                 <label class="small bold accent-text" style="display:block; margin-bottom:10px;">Grant Sub-Admin Privileges:</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <?php 
+                    <?php
                     $available_perms = [
                         'manage_inventory' => 'Manage Inventory',
                         'view_costs'       => 'View Cost Prices',
-                        'manage_repairs'   => 'Manage Repairs',
                         'delete_records'   => 'Delete Records',
                         'view_reports'     => 'View History/Reports'
                     ];
-                    foreach ($available_perms as $val => $label): 
+                    foreach ($available_perms as $val => $label):
                         $checked = in_array($val, $edit_user_data['perms_arr'] ?? []) ? 'checked' : '';
                     ?>
                         <label class="small"><input type="checkbox" name="perms[]" value="<?= $val ?>" <?= $checked ?>> <?= $label ?></label>
@@ -167,44 +169,54 @@ if (isset($_GET['msg']) && $_GET['msg'] === 'updated') {
     </div>
 
     <script>
-    $('#roleSelect').on('change', function() {
-        $('#permission-zone').toggle($(this).val() === 'sub-admin');
-    });
+        $('#roleSelect').on('change', function() {
+            $('#permission-zone').toggle($(this).val() === 'sub-admin');
+        });
     </script>
 
     <!-- Users List -->
     <div class="card">
-        <div class="card-header"><h3>Current Users</h3></div>
+        <div class="card-header">
+            <h3>Current Users</h3>
+        </div>
         <div class="table-wrap">
             <table class="data-table">
-                <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Permissions</th><th style="text-align:right">Action</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Permissions</th>
+                        <th style="text-align:right">Action</th>
+                    </tr>
+                </thead>
                 <tbody>
                     <?php foreach ($users as $u): ?>
-                    <tr class="<?= isset($edit_id) && $edit_id === $u['id'] ? 'highlight-row' : '' ?>">
-                        <td class="bold">
-                            <a href="users.php?edit=<?= $u['id'] ?>#user-form-card" class="user-edit-link">
-                                <?= htmlspecialchars($u['full_name']) ?>
-                            </a>
-                        </td>
-                        <td class="mono small"><?= htmlspecialchars($u['username']) ?></td>
-                        <td><span class="tag"><?= ucfirst($u['role']) ?></span></td>
-                        <td class="small dim" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                            <?= $u['role'] === 'admin' ? 'Full' : ($u['permissions'] ? str_replace('_', ' ', $u['permissions']) : 'None') ?>
-                        </td>
-                        <td style="text-align:right">
-                            <div class="action-btns" style="justify-content: flex-end;">
-                            <a href="users.php?edit=<?= $u['id'] ?>" class="btn btn-xs btn-ghost">Edit</a>
-                            <?php if ($u['id'] !== $_SESSION['khadilu_user_id']): ?>
-                            <form method="POST" onsubmit="return confirm('Delete this user?')">
-                                <input type="hidden" name="action" value="delete_user">
-                                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                                <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-danger">Remove</button>
-                            </form>
-                            <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr class="<?= isset($edit_id) && $edit_id === $u['id'] ? 'highlight-row' : '' ?>">
+                            <td class="bold">
+                                <a href="users.php?edit=<?= $u['id'] ?>#user-form-card" class="user-edit-link">
+                                    <?= htmlspecialchars($u['full_name']) ?>
+                                </a>
+                            </td>
+                            <td class="mono small"><?= htmlspecialchars($u['username']) ?></td>
+                            <td><span class="tag"><?= ucfirst($u['role']) ?></span></td>
+                            <td class="small dim" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <?= $u['role'] === 'admin' ? 'Full' : ($u['permissions'] ? str_replace('_', ' ', $u['permissions']) : 'None') ?>
+                            </td>
+                            <td style="text-align:right">
+                                <div class="action-btns" style="justify-content: flex-end;">
+                                    <a href="users.php?edit=<?= $u['id'] ?>" class="btn btn-xs btn-ghost">Edit</a>
+                                    <?php if ($u['id'] !== $_SESSION['khadilu_user_id']): ?>
+                                        <form method="POST" onsubmit="return confirm('Delete this user?')">
+                                            <input type="hidden" name="action" value="delete_user">
+                                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                            <input type="hidden" name="user_id" value="<?= $u['id'] ?>">
+                                            <button type="submit" class="btn btn-xs btn-danger">Remove</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>

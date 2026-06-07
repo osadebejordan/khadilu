@@ -35,7 +35,6 @@ $required_schema = [
     'sales_transactions' => ['id', 'customer_id', 'total_cart_value', 'total_paid'],
     'stock_outflow' => ['transaction_id', 'user_id', 'customer_id', 'amount_paid', 'cost_price'],
     'stock_returns' => ['id', 'product_id', 'customer_id', 'outflow_id', 'refund_amount', 'status'],
-    'repairs' => ['id', 'customer_id', 'product_id', 'customer_phone', 'status', 'category', 'estimated_cost', 'amount_paid'],
     'customer_payments' => ['id', 'customer_id', 'user_id', 'amount', 'payment_method'],
     'system_audit_log' => ['id', 'user_id', 'action', 'details'],
     'categories' => ['id', 'name'],
@@ -66,13 +65,6 @@ foreach ($required_schema as $table => $columns) {
                 quantity INT NOT NULL, refund_amount DECIMAL(12,2) DEFAULT 0.00, notes TEXT,
                 status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT); ",
-            'repairs' => "CREATE TABLE repairs (
-                id INT AUTO_INCREMENT PRIMARY KEY, product_id INT DEFAULT NULL, customer_id INT DEFAULT NULL,
-                customer_name VARCHAR(150) NOT NULL, customer_phone VARCHAR(20), device_model VARCHAR(150) NOT NULL,
-                issue_description TEXT NOT NULL, status ENUM('Received', 'In-Progress', 'Ready', 'Delivered', 'Cancelled') DEFAULT 'Received',
-                estimated_cost DECIMAL(12,2) DEFAULT 0.00, amount_paid DECIMAL(12,2) DEFAULT 0.00, user_id INT NOT NULL,
-                notes TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL, FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL); ",
             'sales_transactions' => "CREATE TABLE sales_transactions (
                 id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT DEFAULT NULL, customer_name VARCHAR(120) NOT NULL,
                 user_id INT NOT NULL, total_cart_value DECIMAL(12,2) NOT NULL, total_paid DECIMAL(12,2) NOT NULL,
@@ -117,10 +109,9 @@ foreach ($required_schema as $table => $columns) {
             elseif ($col == 'category_name' && $table == 'qualities') $fix_sql .= "VARCHAR(100) DEFAULT NULL AFTER name; ";
             elseif ($col == 'cost_price' && $table == 'stock_outflow') $fix_sql .= "DECIMAL(12,2) DEFAULT 0.00 AFTER quantity; ";
             elseif ($col == 'product_id') $fix_sql .= "INT DEFAULT NULL AFTER id; ";
-            elseif ($col == 'category' && $table == 'repairs') $fix_sql .= "VARCHAR(100) AFTER device_model; ";
             elseif ($col == 'customer_phone') $fix_sql .= "VARCHAR(20) AFTER customer_name; ";
             elseif ($col == 'low_stock_threshold') $fix_sql .= "INT DEFAULT 3 AFTER cost_price; ";
-            elseif ($col == 'type') $fix_sql .= "ENUM('Retail', 'Repair', 'Both') DEFAULT 'Retail' AFTER phone; ";
+            elseif ($col == 'type') $fix_sql .= "ENUM('Retail') DEFAULT 'Retail' AFTER phone; ";
             elseif ($col == 'supplier_phone') $fix_sql .= "VARCHAR(20) AFTER supplier; ";
 
             // For system_audit_log
@@ -157,8 +148,7 @@ if ($view_check->num_rows == 0) {
         c.*,
         (
             (SELECT IFNULL(SUM(total_amount - amount_paid), 0) FROM stock_outflow WHERE customer_id = c.id) + 
-            (SELECT IFNULL(SUM(estimated_cost), 0) FROM repairs WHERE customer_id = c.id) - 
-            (SELECT IFNULL(SUM(amount), 0) FROM customer_payments WHERE customer_id = c.id) -
+            (SELECT IFNULL(SUM(amount), 0) * -1 FROM customer_payments WHERE customer_id = c.id) -
             (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id AND status = 'Approved')
         ) AS balance
     FROM customers c; ";

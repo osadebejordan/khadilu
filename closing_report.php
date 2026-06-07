@@ -56,7 +56,7 @@ $details_sql = "
     (SELECT created_at, customer_name as party, 'Sale' as category, payment_method, total_paid as amount, notes 
      FROM sales_transactions WHERE DATE(created_at) = ?)
     UNION ALL
-    (SELECT cp.created_at, c.name as party, 'Ledger/Repair' as category, cp.payment_method, cp.amount, cp.notes 
+    (SELECT cp.created_at, c.name as party, 'Ledger' as category, cp.payment_method, cp.amount, cp.notes 
      FROM customer_payments cp JOIN customers c ON cp.customer_id = c.id WHERE DATE(cp.created_at) = ?)
     ORDER BY created_at DESC";
 

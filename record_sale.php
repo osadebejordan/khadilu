@@ -125,8 +125,7 @@ $categories_list = array_filter(array_unique(array_column($products, 'category')
 sort($categories_list);
 $qualities_list = array_filter(array_unique(array_column($products, 'quality')));
 sort($qualities_list);
-
-$customers = $conn->query("SELECT * FROM customers WHERE type IN ('Retail', 'Both') ORDER BY name ASC")->fetch_all(MYSQLI_ASSOC);
+$customers = $conn->query("SELECT * FROM customers ORDER BY name ASC")->fetch_all(MYSQLI_ASSOC);
 
 // Fetch categories and qualities for the quick-add modal
 $categories = $conn->query("SELECT * FROM categories ORDER BY name ASC")->fetch_all(MYSQLI_ASSOC);
@@ -153,6 +152,7 @@ echo renderToast($msg, $msg_type);
 <div class="two-col">
   <!-- Sale Form -->
   <div class="card form-card" id="sale-card-container" style="overflow: visible; position: relative;">
+  <div class="card form-card" id="sale-card-container" style="overflow: visible; position: relative; z-index: 100;">
     <div class="card-header">
       <h3>New Transaction</h3>
     </div>
@@ -395,12 +395,15 @@ echo renderToast($msg, $msg_type);
 
     // Initialize filter dropdowns with select2
     $('#brand-filter, #category-filter, #quality-filter').select2({
+      dropdownParent: $('#sale-card-container'),
       width: '100%',
       closeOnSelect: true
     });
 
     // Attach filterProducts to change event of filter dropdowns
-    $('#brand-filter, #category-filter, #quality-filter').on('change', filterProducts);
+    $('#brand-filter, #category-filter, #quality-filter').on('change', function() {
+      filterProducts();
+    });
 
     // Initial filter application on page load
     filterProducts();
@@ -676,7 +679,7 @@ echo renderToast($msg, $msg_type);
     $('#brand-filter').val(brand).trigger('change.select2');
     $('#category-filter').val(category).trigger('change.select2');
     $('#quality-filter').val(quality).trigger('change.select2');
-    
+
     // Refresh product list based on these new values
     filterProducts();
   }

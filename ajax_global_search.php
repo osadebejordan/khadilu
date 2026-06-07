@@ -44,22 +44,6 @@ foreach ($res as $row) {
     ];
 }
 
-// 3. Search Repairs
-$stmt = $conn->prepare("SELECT id, device_model, customer_name, status FROM repairs WHERE (customer_name LIKE ? OR device_model LIKE ? OR id LIKE ?) LIMIT 3");
-$stmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
-$stmt->execute();
-$res = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-foreach ($res as $row) {
-    $results[] = [
-        'category' => 'Repairs',
-        'title'    => "#REP-" . str_pad($row['id'], 4, '0', STR_PAD_LEFT),
-        'sub'      => $row['customer_name'] . " — " . $row['device_model'],
-        'meta'     => $row['status'],
-        'url'      => "repair_details.php?id=" . $row['id'],
-        'icon'     => '🛠️'
-    ];
-}
-
 header('Content-Type: application/json');
 echo json_encode($results);
 exit;

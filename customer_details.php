@@ -15,20 +15,23 @@ $msg_type = '';
 // --- Handle deleting a payment (Admin only) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_payment']) && can('delete_records')) {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $msg = "Security Validation Failed."; $msg_type = "error";
+        $msg = "Security Validation Failed.";
+        $msg_type = "error";
     } else {
-    $payment_id = intval($_POST['payment_id']);
-    $stmt = $conn->prepare("DELETE FROM customer_payments WHERE id = ? AND customer_id = ?");
-    $stmt->bind_param("ii", $payment_id, $customer_id);
-    $stmt->execute();
-    $msg = "Payment entry removed from logs."; $msg_type = "success";
+        $payment_id = intval($_POST['payment_id']);
+        $stmt = $conn->prepare("DELETE FROM customer_payments WHERE id = ? AND customer_id = ?");
+        $stmt->bind_param("ii", $payment_id, $customer_id);
+        $stmt->execute();
+        $msg = "Payment entry removed from logs.";
+        $msg_type = "success";
     }
 }
 
 // --- Handle marking an item as returned directly from log ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_return'])) {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $msg = "Security Validation Failed."; $msg_type = "error";
+        $msg = "Security Validation Failed.";
+        $msg_type = "error";
     } else {
         $outflow_id = intval($_POST['outflow_id']);
         // Fetch item details from outflow to ensure we return the correct product/qty
@@ -47,11 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_return'])) {
             // Record as Pending - Do NOT update stock or ledger yet
             $stmt = $conn->prepare("INSERT INTO stock_returns (product_id, customer_id, outflow_id, user_id, quantity, refund_amount, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'Pending')");
             $stmt->bind_param("iiiiids", $pid, $customer_id, $outflow_id, $uid, $qty, $refund, $notes);
-            
-            if($stmt->execute()) {
-                $msg = "Return request sent for Admin approval."; $msg_type = "success";
+
+            if ($stmt->execute()) {
+                $msg = "Return request sent for Admin approval.";
+                $msg_type = "success";
             } else {
-                $msg = "Error creating return request."; $msg_type = "error";
+                $msg = "Error creating return request.";
+                $msg_type = "error";
             }
         }
     }
@@ -60,34 +65,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_return'])) {
 // --- Handle recording a debt payment ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_payment'])) {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $msg = "Security Validation Failed."; $msg_type = "error";
-    } else {
-    $amount = floatval($_POST['amount'] ?? 0);
-    $method = $_POST['payment_method'] ?? 'Cash';
-    $notes  = trim($_POST['notes'] ?? '');
-    $uid    = $_SESSION['khadilu_user_id'];
-
-    if ($amount <= 0) {
-        $msg = "Please enter a valid amount.";
+        $msg = "Security Validation Failed.";
         $msg_type = "error";
     } else {
-        $stmt = $conn->prepare("INSERT INTO customer_payments (customer_id, user_id, amount, payment_method, notes) VALUES (?, ?, ?, ?, ?)");
-        $stmt->bind_param("iidss", $customer_id, $uid, $amount, $method, $notes);
-        if ($stmt->execute()) {
-            $msg = "✓ Payment of " . money($amount) . " recorded successfully.";
-            $msg_type = "success";
-        } else {
-            $msg = "Error: " . $conn->error;
+        $amount = floatval($_POST['amount'] ?? 0);
+        $method = $_POST['payment_method'] ?? 'Cash';
+        $notes  = trim($_POST['notes'] ?? '');
+        $uid    = $_SESSION['khadilu_user_id'];
+
+        if ($amount <= 0) {
+            $msg = "Please enter a valid amount.";
             $msg_type = "error";
+        } else {
+            $stmt = $conn->prepare("INSERT INTO customer_payments (customer_id, user_id, amount, payment_method, notes) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("iidss", $customer_id, $uid, $amount, $method, $notes);
+            if ($stmt->execute()) {
+                $msg = "✓ Payment of " . money($amount) . " recorded successfully.";
+                $msg_type = "success";
+            } else {
+                $msg = "Error: " . $conn->error;
+                $msg_type = "error";
+            }
         }
-    }
     }
 }
 
 // --- Handle recording a cash refund ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['record_refund'])) {
     if (!validateCsrfToken($_POST['csrf_token'] ?? '')) {
-        $msg = "Security Validation Failed."; $msg_type = "error";
+        $msg = "Security Validation Failed.";
+        $msg_type = "error";
     } else {
         $amount = floatval($_POST['amount'] ?? 0);
         $method = $_POST['payment_method'] ?? 'Cash';
@@ -178,33 +185,17 @@ $sql = "SELECT * FROM (
           FROM stock_returns r 
           JOIN products p ON r.product_id = p.id
           WHERE r.customer_id = ?)
-        UNION ALL
-        (SELECT 
-            'repair' as type, 
-            rep.id,
-            rep.created_at, 
-            CONCAT('Repair: ', rep.device_model) as detail,
-            '' as quality,
-            rep.estimated_cost as charge,
-            0 as credit,
-            rep.estimated_cost as net,
-            rep.notes,
-            rep.product_id as ref_pid,
-            1 as ref_qty,
-            NULL as is_returned
-          FROM repairs rep
-          WHERE rep.customer_id = ?)
         ) as audit_log ORDER BY created_at DESC";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("iiii", $customer_id, $customer_id, $customer_id, $customer_id);
+$stmt->bind_param("iii", $customer_id, $customer_id, $customer_id);
 $stmt->execute();
 $log = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // Totals for summary cards
 $total_bought = 0;
 $total_paid = 0;
-foreach($log as $entry) {
+foreach ($log as $entry) {
     // Only count returns in the balance if they have been approved
     if ($entry['type'] === 'return' && $entry['is_returned'] !== 'Approved') {
         continue;
@@ -239,7 +230,9 @@ require_once 'includes/header.php';
 
 <div class="two-col">
     <div class="card">
-        <div class="card-header"><h3>Statement of Account</h3></div>
+        <div class="card-header">
+            <h3>Statement of Account</h3>
+        </div>
         <div class="table-wrap">
             <table class="data-table">
                 <thead>
@@ -250,69 +243,71 @@ require_once 'includes/header.php';
                         <th>Credit (₦)</th>
                         <th>Balance (₦)</th>
                         <th>Action</th>
-                        <?php if(can('delete_records')): ?><th></th><?php endif; ?>
+                        <?php if (can('delete_records')): ?><th></th><?php endif; ?>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php 
+                    <?php
                     $display_bal = $balance;
                     foreach ($log as $row):
                         $current_row_bal = $display_bal;
                         $display_bal -= $row['net'];
                     ?>
-                    <tr>
-                        <td class="dim small"><?= date('d M Y, H:i', strtotime($row['created_at'])) ?></td>
-                        <td>
-                            <div class="bold <?= $row['type'] === 'payment' ? ($row['credit'] < 0 ? 'red-text' : 'green-text') : '' ?>">
-                                <?php 
+                        <tr>
+                            <td class="dim small"><?= date('d M Y, H:i', strtotime($row['created_at'])) ?></td>
+                            <td>
+                                <div class="bold <?= $row['type'] === 'payment' ? ($row['credit'] < 0 ? 'red-text' : 'green-text') : '' ?>">
+                                    <?php
                                     if ($row['type'] === 'payment' && $row['credit'] < 0) {
                                         echo "Physical Refund Issued";
                                     } else {
                                         echo htmlspecialchars($row['detail']);
                                     }
-                                ?>
-                                <?php if(!empty($row['quality'])): ?> <span class="bold">[<?= htmlspecialchars($row['quality']) ?>]</span><?php endif; ?>
-                            </div>
-                            <?php if ($row['notes']): ?><div class="dim small italic"><?= htmlspecialchars($row['notes']) ?></div><?php endif; ?>
-                        </td>
-                        <td class="mono"><?= $row['charge'] > 0 ? money($row['charge']) : '—' ?></td>
-                        <td class="mono <?= $row['credit'] < 0 ? 'red-text' : 'green-text' ?>">
-                            <?= $row['credit'] != 0 ? money(abs($row['credit'])) : '—' ?>
-                            <?= $row['credit'] < 0 ? ' <small>(Out)</small>' : '' ?>
-                        </td>
-                        <td class="mono bold <?= $current_row_bal > 0 ? 'red-text' : 'green-text' ?>">
-                            <?= money($current_row_bal) ?>
-                        </td>
-                        <td style="white-space: nowrap;">
-                            <?php if ($row['type'] === 'sale' && $row['charge'] > $row['credit'] && empty($row['is_returned'])): ?>
-                                <form method="POST" onsubmit="return confirm('Mark this item as returned? This will restore stock and credit the account.')">
-                                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                                    <input type="hidden" name="mark_return" value="1">
-                                    <input type="hidden" name="outflow_id" value="<?= $row['id'] ?>">
-                                    <button type="submit" class="btn btn-xs btn-outline" style="color:var(--yellow); border-color:var(--yellow);">Request Return</button>
-                                </form>
-                            <?php elseif ($row['is_returned'] === 'Pending'): ?>
-                                <span class="pill pill-yellow">Awaiting Approval</span>
-                            <?php elseif ($row['is_returned'] === 'Approved'): ?>
-                                <span class="pill pill-green">Returned</span>
+                                    ?>
+                                    <?php if (!empty($row['quality'])): ?> <span class="bold">[<?= htmlspecialchars($row['quality']) ?>]</span><?php endif; ?>
+                                </div>
+                                <?php if ($row['notes']): ?><div class="dim small italic"><?= htmlspecialchars($row['notes']) ?></div><?php endif; ?>
+                            </td>
+                            <td class="mono"><?= $row['charge'] > 0 ? money($row['charge']) : '—' ?></td>
+                            <td class="mono <?= $row['credit'] < 0 ? 'red-text' : 'green-text' ?>">
+                                <?= $row['credit'] != 0 ? money(abs($row['credit'])) : '—' ?>
+                                <?= $row['credit'] < 0 ? ' <small>(Out)</small>' : '' ?>
+                            </td>
+                            <td class="mono bold <?= $current_row_bal > 0 ? 'red-text' : 'green-text' ?>">
+                                <?= money($current_row_bal) ?>
+                            </td>
+                            <td style="white-space: nowrap;">
+                                <?php if ($row['type'] === 'sale' && $row['charge'] > $row['credit'] && empty($row['is_returned'])): ?>
+                                    <form method="POST" onsubmit="return confirm('Mark this item as returned? This will restore stock and credit the account.')">
+                                        <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                        <input type="hidden" name="mark_return" value="1">
+                                        <input type="hidden" name="outflow_id" value="<?= $row['id'] ?>">
+                                        <button type="submit" class="btn btn-xs btn-outline" style="color:var(--yellow); border-color:var(--yellow);">Request Return</button>
+                                    </form>
+                                <?php elseif ($row['is_returned'] === 'Pending'): ?>
+                                    <span class="pill pill-yellow">Awaiting Approval</span>
+                                <?php elseif ($row['is_returned'] === 'Approved'): ?>
+                                    <span class="pill pill-green">Returned</span>
+                                <?php endif; ?>
+                            </td>
+                            <?php if (can('delete_records')): ?>
+                                <td style="text-align:right">
+                                    <?php if ($row['type'] === 'payment'): ?>
+                                        <form method="POST" onsubmit="return confirm('Remove this payment record?')">
+                                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                            <input type="hidden" name="delete_payment" value="1">
+                                            <input type="hidden" name="payment_id" value="<?= $row['id'] ?>">
+                                            <button type="submit" class="btn btn-xs btn-danger">×</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </td>
                             <?php endif; ?>
-                        </td>
-                        <?php if(can('delete_records')): ?>
-                        <td style="text-align:right">
-                            <?php if($row['type'] === 'payment'): ?>
-                            <form method="POST" onsubmit="return confirm('Remove this payment record?')">
-                                <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                                <input type="hidden" name="delete_payment" value="1">
-                                <input type="hidden" name="payment_id" value="<?= $row['id'] ?>">
-                                <button type="submit" class="btn btn-xs btn-danger">×</button>
-                            </form>
-                            <?php endif; ?>
-                        </td>
-                        <?php endif; ?>
-                    </tr>
+                        </tr>
                     <?php endforeach; ?>
                     <?php if (empty($log)): ?>
-                    <tr><td colspan="5" class="empty-state">No transaction history found for this client.</td></tr>
+                        <tr>
+                            <td colspan="5" class="empty-state">No transaction history found for this client.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -320,7 +315,9 @@ require_once 'includes/header.php';
     </div>
 
     <div class="card form-card">
-        <div class="card-header"><h3>📥 Record Debt Payment</h3></div>
+        <div class="card-header">
+            <h3>📥 Record Debt Payment</h3>
+        </div>
         <form method="POST">
             <input type="hidden" name="record_payment" value="1">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
@@ -346,7 +343,9 @@ require_once 'includes/header.php';
 
         <div class="card-divider"></div>
 
-        <div class="card-header"><h3>📤 Issue Physical Refund</h3></div>
+        <div class="card-header">
+            <h3>📤 Issue Physical Refund</h3>
+        </div>
         <form method="POST">
             <input type="hidden" name="record_refund" value="1">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">

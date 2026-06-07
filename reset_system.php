@@ -26,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_reset'])) {
                 'customer_payments',
                 'customers',
                 'products',
-                'repairs',
                 'sales_transactions',
                 'stock_inflow',
                 'stock_outflow',
@@ -69,7 +68,7 @@ require_once 'includes/header.php';
         <ul class="dim" style="text-align: left; margin-bottom: 25px; padding-left: 20px; font-size: 0.9rem;">
             <li>Inventory Products & Stock Levels</li>
             <li>Sales Transactions & Inflow History</li>
-            <li>Repair Jobs & Customer Records</li>
+            <li>Customer Records & Ledgers</li>
             <li>Expense Logs & Audit Trails</li>
         </ul>
 

@@ -21,12 +21,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_customer'])) {
             $stmt = $conn->prepare("INSERT INTO customers (name, phone, type) VALUES (?, ?, ?)");
             $stmt->bind_param("sss", $name, $phone, $type);
             if ($stmt->execute()) {
-                $msg = "Customer registered!"; $msg_type = "success";
+                $msg = "Customer registered!";
+                $msg_type = "success";
             }
         }
     } catch (Exception $e) {
         log_error($e, 'ADD_CUSTOMER');
-        $msg = "Error adding customer: " . $e->getMessage(); $msg_type = "error";
+        $msg = "Error adding customer: " . $e->getMessage();
+        $msg_type = "error";
     }
 }
 
@@ -40,28 +42,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         if (!isAdmin()) {
             throw new Exception("Access Denied: Only admins can delete customers.");
         }
-            $cid = intval($_POST['customer_id']);
-            
-            // First, check if the customer has any outstanding debt
-            $stmt_balance = $conn->prepare("SELECT balance FROM view_customer_balances WHERE id = ?");
-            $stmt_balance->bind_param("i", $cid);
-            $stmt_balance->execute();
-            $customer_balance = $stmt_balance->get_result()->fetch_assoc()['balance'];
+        $cid = intval($_POST['customer_id']);
 
-            if ($customer_balance > 0) {
-                throw new Exception("Cannot delete customer: They still have an outstanding debt of " . money($customer_balance) . ".");
-            } else {
-                // If balance is zero or negative, proceed with deletion
-                $stmt = $conn->prepare("DELETE FROM customers WHERE id = ?");
-                $stmt->bind_param("i", $cid);
-                if ($stmt->execute()) {
-                    $msg = "Customer and payment history removed successfully.";
-                    $msg_type = "success";
-                }
+        // First, check if the customer has any outstanding debt
+        $stmt_balance = $conn->prepare("SELECT balance FROM view_customer_balances WHERE id = ?");
+        $stmt_balance->bind_param("i", $cid);
+        $stmt_balance->execute();
+        $customer_balance = $stmt_balance->get_result()->fetch_assoc()['balance'];
+
+        if ($customer_balance > 0) {
+            throw new Exception("Cannot delete customer: They still have an outstanding debt of " . money($customer_balance) . ".");
+        } else {
+            // If balance is zero or negative, proceed with deletion
+            $stmt = $conn->prepare("DELETE FROM customers WHERE id = ?");
+            $stmt->bind_param("i", $cid);
+            if ($stmt->execute()) {
+                $msg = "Customer and payment history removed successfully.";
+                $msg_type = "success";
             }
+        }
     } catch (Exception $e) {
         log_error($e, 'DELETE_CUSTOMER');
-        $msg = $e->getMessage(); $msg_type = "error";
+        $msg = $e->getMessage();
+        $msg_type = "error";
     }
 }
 
@@ -80,12 +83,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $stmt = $conn->prepare("UPDATE customers SET name = ?, phone = ?, type = ? WHERE id = ?");
             $stmt->bind_param("sssi", $name, $phone, $type, $cid);
             if ($stmt->execute()) {
-                $msg = "Customer updated successfully."; $msg_type = "success";
+                $msg = "Customer updated successfully.";
+                $msg_type = "success";
             }
         }
     } catch (Exception $e) {
         log_error($e, 'EDIT_CUSTOMER');
-        $msg = "Error updating customer: " . $e->getMessage(); $msg_type = "error";
+        $msg = "Error updating customer: " . $e->getMessage();
+        $msg_type = "error";
     }
 }
 
@@ -93,9 +98,6 @@ $customers = [];
 try {
     $filter = $_GET['filter'] ?? 'all';
     $search = trim($_GET['q'] ?? '');
-    // Whitelist to prevent SQL injection — only allow valid type values
-    $allowed_types = ['Retail', 'Repair', 'Both'];
-    $type_filter = in_array($_GET['type'] ?? '', $allowed_types) ? $_GET['type'] : '';
 
     $where_clauses = [];
     $bind_params   = [];
@@ -103,11 +105,6 @@ try {
 
     if ($filter === 'debt') {
         $where_clauses[] = "balance > 0";
-    }
-    if ($type_filter) {
-        $where_clauses[] = "type IN (?, 'Both')";
-        $bind_params[]   = $type_filter;
-        $bind_types     .= 's';
     }
     if ($search) {
         $like = "%$search%";
@@ -142,7 +139,9 @@ if (isset($_GET['edit'])) {
     try {
         $res_e = $conn->query("SELECT * FROM customers WHERE id = $eid");
         if ($res_e->num_rows) $edit_customer = $res_e->fetch_assoc();
-    } catch (Exception $e) { log_error($e, 'FETCH_EDIT_CUSTOMER'); }
+    } catch (Exception $e) {
+        log_error($e, 'FETCH_EDIT_CUSTOMER');
+    }
 }
 
 require_once 'includes/header.php';
@@ -151,7 +150,9 @@ require_once 'includes/header.php';
 
 <div class="two-col">
     <div class="card form-card">
-        <div class="card-header"><h3>Register New Customer</h3></div>
+        <div class="card-header">
+            <h3>Register New Customer</h3>
+        </div>
         <form method="POST">
             <input type="hidden" name="add_customer" value="1">
             <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
@@ -163,26 +164,14 @@ require_once 'includes/header.php';
                 <label>Phone Number</label>
                 <input type="text" name="phone">
             </div>
-            <div class="form-group">
-                <label>Customer Category</label>
-                <select name="type">
-                    <option value="Retail">Retail (Buying Parts)</option>
-                    <option value="Repair">Repair (Fixing Phones)</option>
-                    <option value="Both">Both</option>
-                </select>
-            </div>
+            <input type="hidden" name="type" value="Retail">
             <button type="submit" class="btn btn-primary btn-full">Add Customer</button>
         </form>
     </div>
 
     <div class="card">
         <div class="card-header">
-            <h3>Customer Ledger <span class="dim small"><?= ucfirst($filter) ?> (<?= $_GET['type'] ?? 'All' ?>)</span></h3>
-            <div class="filter-tabs">
-                <a href="customers.php?type=all" class="filter-tab <?= (empty($_GET['type']) || $_GET['type'] == 'all') ? 'active' : '' ?>">All</a>
-                <a href="customers.php?type=Retail" class="filter-tab <?= ($_GET['type'] ?? '') == 'Retail' ? 'active' : '' ?>">Retail</a>
-                <a href="customers.php?type=Repair" class="filter-tab <?= ($_GET['type'] ?? '') == 'Repair' ? 'active' : '' ?>">Repairs</a>
-            </div>
+            <h3>Customer Ledger <span class="dim small"><?= ucfirst($filter) ?></span></h3>
         </div>
         <div class="table-wrap">
             <table class="data-table">
@@ -196,33 +185,35 @@ require_once 'includes/header.php';
                 </thead>
                 <tbody>
                     <?php foreach ($customers as $c): ?>
-                    <tr data-customer='<?= htmlspecialchars(json_encode($c), ENT_QUOTES) ?>'>
-                        <td class="bold"><?= htmlspecialchars($c['name']) ?></td>
-                        <td>
-                            <span class="tag"><?= $c['type'] ?></span>
-                            <span class="dim small" style="margin-left:5px;"><?= htmlspecialchars($c['phone']) ?></span>
-                        </td>
-                        <td class="mono <?= $c['balance'] > 0 ? 'red-text bold' : 'green-text' ?>">
-                            <?= money($c['balance']) ?>
-                        </td>
-                        <td style="text-align:right">
-                            <div class="action-btns" style="justify-content: flex-end;">
-                                <a href="customer_details.php?id=<?= $c['id'] ?>" class="btn btn-xs btn-outline">View Audit Log</a>
-                                <button type="button" onclick="openEditCustomerModal(this)" class="btn btn-xs btn-ghost">Edit</button>
-                                <?php if (isAdmin()): ?>
-                                <form method="POST" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this customer? This will permanently remove their record and payment history.')">
-                                    <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-                                    <input type="hidden" name="action" value="delete_customer">
-                                    <input type="hidden" name="customer_id" value="<?= $c['id'] ?>">
-                                    <button type="submit" class="btn btn-xs btn-danger">Del</button>
-                                </form>
-                                <?php endif; ?>
-                            </div>
-                        </td>
-                    </tr>
+                        <tr data-customer='<?= htmlspecialchars(json_encode($c), ENT_QUOTES) ?>'>
+                            <td class="bold"><?= htmlspecialchars($c['name']) ?></td>
+                            <td>
+                                <span class="tag"><?= $c['type'] ?></span>
+                                <span class="dim small" style="margin-left:5px;"><?= htmlspecialchars($c['phone']) ?></span>
+                            </td>
+                            <td class="mono <?= $c['balance'] > 0 ? 'red-text bold' : 'green-text' ?>">
+                                <?= money($c['balance']) ?>
+                            </td>
+                            <td style="text-align:right">
+                                <div class="action-btns" style="justify-content: flex-end;">
+                                    <a href="customer_details.php?id=<?= $c['id'] ?>" class="btn btn-xs btn-outline">View Audit Log</a>
+                                    <button type="button" onclick="openEditCustomerModal(this)" class="btn btn-xs btn-ghost">Edit</button>
+                                    <?php if (isAdmin()): ?>
+                                        <form method="POST" style="display:inline" onsubmit="return confirm('Are you sure you want to delete this customer? This will permanently remove their record and payment history.')">
+                                            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+                                            <input type="hidden" name="action" value="delete_customer">
+                                            <input type="hidden" name="customer_id" value="<?= $c['id'] ?>">
+                                            <button type="submit" class="btn btn-xs btn-danger">Del</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                        </tr>
                     <?php endforeach; ?>
                     <?php if (empty($customers)): ?>
-                    <tr><td colspan="4" class="empty-state">No customers registered yet.</td></tr>
+                        <tr>
+                            <td colspan="4" class="empty-state">No customers registered yet.</td>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -232,60 +223,53 @@ require_once 'includes/header.php';
 
 <!-- Edit Customer Modal -->
 <div class="modal-overlay" id="edit-customer-modal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal">
-    <div class="modal-header">
-      <h3>Edit Customer Info</h3>
-      <button class="modal-close" onclick="document.getElementById('edit-customer-modal').style.display='none'">✕</button>
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Edit Customer Info</h3>
+            <button class="modal-close" onclick="document.getElementById('edit-customer-modal').style.display='none'">✕</button>
+        </div>
+        <form method="POST" class="modal-form">
+            <input type="hidden" name="action" value="edit_customer">
+            <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
+            <input type="hidden" name="customer_id" id="edit-customer-id">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" name="name" id="edit-customer-name" required>
+            </div>
+            <div class="form-group">
+                <label>Phone Number</label>
+                <input type="text" name="phone" id="edit-customer-phone">
+            </div>
+            <input type="hidden" name="type" id="edit-customer-type" value="Retail">
+            <div class="modal-actions">
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('edit-customer-modal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
     </div>
-    <form method="POST" class="modal-form">
-      <input type="hidden" name="action" value="edit_customer">
-      <input type="hidden" name="csrf_token" value="<?= getCsrfToken() ?>">
-      <input type="hidden" name="customer_id" id="edit-customer-id">
-      <div class="form-group">
-        <label>Full Name</label>
-        <input type="text" name="name" id="edit-customer-name" required>
-      </div>
-      <div class="form-group">
-        <label>Phone Number</label>
-        <input type="text" name="phone" id="edit-customer-phone">
-      </div>
-      <div class="form-group">
-        <label>Customer Category</label>
-        <select name="type" id="edit-customer-type">
-            <option value="Retail">Retail (Buying Parts)</option>
-            <option value="Repair">Repair (Fixing Phones)</option>
-            <option value="Both">Both</option>
-        </select>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-ghost" onclick="document.getElementById('edit-customer-modal').style.display='none'">Cancel</button>
-        <button type="submit" class="btn btn-primary">Save Changes</button>
-      </div>
-    </form>
-  </div>
 </div>
 
 <script>
-function openEditCustomerModal(el) {
-    const row = el.closest('tr');
-    const c = JSON.parse(row.dataset.customer);
-    
-    $('#edit-customer-id').val(c.id);
-    $('#edit-customer-name').val(c.name);
-    $('#edit-customer-phone').val(c.phone);
-    $('#edit-customer-type').val(c.type).trigger('change');
-    
-    $('#edit-customer-modal').css('display', 'flex');
-}
+    function openEditCustomerModal(el) {
+        const row = el.closest('tr');
+        const c = JSON.parse(row.dataset.customer);
 
-$(document).ready(function() {
-    // Initialize select2 for the customer type in the edit modal
-    $('#edit-customer-type').select2({
-        dropdownParent: $('#edit-customer-modal'),
-        width: '100%',
-        closeOnSelect: true
+        $('#edit-customer-id').val(c.id);
+        $('#edit-customer-name').val(c.name);
+        $('#edit-customer-phone').val(c.phone);
+        $('#edit-customer-type').val(c.type).trigger('change');
+
+        $('#edit-customer-modal').css('display', 'flex');
+    }
+
+    $(document).ready(function() {
+        // Initialize select2 for the customer type in the edit modal
+        $('#edit-customer-type').select2({
+            dropdownParent: $('#edit-customer-modal'),
+            width: '100%',
+            closeOnSelect: true
+        });
     });
-});
 </script>
 
 <?php require_once 'includes/footer.php'; ?>

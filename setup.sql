@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS customers (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
   phone VARCHAR(20),
-  type ENUM('Retail', 'Repair', 'Both') DEFAULT 'Retail',
+  type ENUM('Retail') DEFAULT 'Retail',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -136,35 +136,12 @@ CREATE TABLE IF NOT EXISTS sales_transactions (
 ALTER TABLE stock_outflow ADD COLUMN transaction_id INT DEFAULT NULL AFTER id;
 ALTER TABLE stock_outflow ADD CONSTRAINT fk_transaction_id FOREIGN KEY (transaction_id) REFERENCES sales_transactions(id) ON DELETE CASCADE;
 
--- Repairs Management
-CREATE TABLE IF NOT EXISTS repairs (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  customer_id INT DEFAULT NULL,
-  product_id INT DEFAULT NULL,
-  customer_name VARCHAR(150) NOT NULL,
-  customer_phone VARCHAR(20) DEFAULT NULL,
-  device_model VARCHAR(150) NOT NULL,
-  category VARCHAR(60) DEFAULT NULL,
-  issue_description TEXT NOT NULL,
-  status ENUM('Received', 'In-Progress', 'Ready', 'Delivered', 'Cancelled') DEFAULT 'Received',
-  estimated_cost DECIMAL(12,2) DEFAULT 0.00,
-  amount_paid DECIMAL(12,2) DEFAULT 0.00,
-  user_id INT NOT NULL,
-  notes TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
-  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
-);
-
 -- View for centralized debt calculation
--- Repair balance correctly deducts deposits already paid at intake
 CREATE OR REPLACE VIEW view_customer_balances AS
 SELECT 
     c.*,
     (
         (SELECT IFNULL(SUM(total_amount - amount_paid), 0) FROM stock_outflow WHERE customer_id = c.id) + 
-        (SELECT IFNULL(SUM(estimated_cost - amount_paid), 0) FROM repairs WHERE customer_id = c.id) - 
         (SELECT IFNULL(SUM(amount), 0) FROM customer_payments WHERE customer_id = c.id) -
         (SELECT IFNULL(SUM(refund_amount), 0) FROM stock_returns WHERE customer_id = c.id AND status = 'Approved')
     ) AS balance

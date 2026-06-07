@@ -27,9 +27,6 @@ $month_sales = $conn->query("SELECT SUM(total_amount) AS v FROM stock_outflow WH
 // Total Debt calculation
 $total_debt = $conn->query("SELECT SUM(balance) AS v FROM view_customer_balances WHERE balance > 0")->fetch_assoc()['v'] ?? 0;
 
-// Ready repairs count
-$ready_repairs = $conn->query("SELECT COUNT(*) AS c FROM repairs WHERE status = 'Ready'")->fetch_assoc()['c'] ?? 0;
-
 // Recent transactions
 $recent = $conn->query("
   SELECT o.created_at, o.quantity, o.total_amount, o.customer_name, o.payment_method, p.name AS product_name, p.quality, p.id as product_id
@@ -114,12 +111,6 @@ if ($out_of_stock > 0) {
       <div class="stat-sub">Outstanding Amount</div>
     </a>
   <?php endif; ?>
-  <div class="stat-card <?= $ready_repairs > 0 ? 'accent' : '' ?>">
-    <div class="stat-icon">🔧</div>
-    <div class="stat-label">Ready Repairs</div>
-    <div class="stat-value"><?= $ready_repairs ?></div>
-    <div class="stat-sub">Waiting for pickup · <a href="repairs.php?status=Ready" class="bold underline" style="color: inherit;">View Jobs</a></div>
-  </div>
   <div class="stat-card <?= $out_of_stock > 0 ? 'danger' : '' ?>">
     <div class="stat-icon">⚠️</div>
     <div class="stat-label">Products</div>
