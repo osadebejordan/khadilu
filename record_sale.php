@@ -364,6 +364,7 @@ echo renderToast($msg, $msg_type);
   function initializeProductSelect() {
     // Destroys any existing Select2 instance before re-initializing
     $('#product-select').select2({
+      dropdownParent: $('#sale-card-container'),
       placeholder: "Select from Stock...",
       width: '100%',
       closeOnSelect: true,
@@ -393,6 +394,7 @@ echo renderToast($msg, $msg_type);
     initializeProductSelect();
 
     $('#customer-select').select2({
+      dropdownParent: $('#sale-card-container'),
       placeholder: "Select customer...",
       closeOnSelect: true
     }).on('select2:open', function() {
@@ -403,6 +405,7 @@ echo renderToast($msg, $msg_type);
 
     // Initialize filter dropdowns with select2
     $('#brand-filter, #category-filter, #quality-filter').select2({
+      dropdownParent: $('#sale-card-container'),
       width: 'resolve',
       closeOnSelect: true
     }).on('select2:open', function() {

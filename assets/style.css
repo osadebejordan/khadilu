@@ -793,6 +793,7 @@ textarea { resize: vertical; }
 /* ── Dropdown Host — Override card overflow for Select2 ── */
 .card.dropdown-host {
   overflow: visible;
+  position: relative;
 }
 .card.dropdown-host:hover {
   transform: none; /* Prevent card hover lift from shifting dropdowns */
