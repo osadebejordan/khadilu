@@ -345,9 +345,9 @@ echo renderToast($msg, $msg_type);
                   <div class="mono small dim"><?= htmlspecialchars($r['sku'] ?: '—') ?></div>
                 </td>
                 <td><span class="pill pill-green" style="font-size:0.7rem"><?= htmlspecialchars($r['quality']) ?></span></td>
-                <td><span class="pill pill-red">–<?= $r['quantity'] ?></span></td>
+                <td><span class="pill pill-red" style="background: var(--red-dim); color: var(--red);">–<?= $r['quantity'] ?></span></td>
                 <td class="mono"><?= money($r['price_per_unit']) ?></td>
-                <td class="mono accent-text"><?= money($r['total_amount']) ?></td>
+                <td class="mono red-text"><?= money($r['total_amount']) ?></td>
                 <td class="dim"><?= htmlspecialchars($r['customer_name']) ?></td>
                 <td><span class="tag"><?= htmlspecialchars($r['payment_method']) ?></span></td>
                 <td class="dim small"><?= timeAgo($r['created_at']) ?></td>

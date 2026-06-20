@@ -256,7 +256,7 @@ require_once 'includes/header.php';
                         <tr>
                             <td class="dim small"><?= date('d M Y, H:i', strtotime($row['created_at'])) ?></td>
                             <td>
-                                <div class="bold <?= $row['type'] === 'payment' ? ($row['credit'] < 0 ? 'red-text' : 'green-text') : '' ?>">
+                                <div class="bold <?= $row['type'] === 'payment' ? ($row['credit'] < 0 ? 'red-text' : 'green-text') : ($row['type'] === 'sale' ? 'red-text' : 'blue-text') ?>">
                                     <?php
                                     if ($row['type'] === 'payment' && $row['credit'] < 0) {
                                         echo "Physical Refund Issued";
@@ -268,7 +268,7 @@ require_once 'includes/header.php';
                                 </div>
                                 <?php if ($row['notes']): ?><div class="dim small italic"><?= htmlspecialchars($row['notes']) ?></div><?php endif; ?>
                             </td>
-                            <td class="mono"><?= $row['charge'] > 0 ? money($row['charge']) : '—' ?></td>
+                            <td class="mono red-text"><?= $row['charge'] > 0 ? money($row['charge']) : '—' ?></td>
                             <td class="mono <?= $row['credit'] < 0 ? 'red-text' : 'green-text' ?>">
                                 <?= $row['credit'] != 0 ? money(abs($row['credit'])) : '—' ?>
                                 <?= $row['credit'] < 0 ? ' <small>(Out)</small>' : '' ?>

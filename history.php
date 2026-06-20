@@ -158,7 +158,12 @@ require_once 'includes/header.php';
       <select name="product" class="select2-simple <?= $product_f ? 'filter-active' : '' ?>">
         <option value="">All Devices</option>
         <?php foreach ($products as $p): ?>
-          <option value="<?= $p['id'] ?>" <?= $product_f == $p['id'] ? 'selected' : '' ?>><?= htmlspecialchars($p['name']) ?></option>
+          <option value="<?= $p['id'] ?>"
+            data-brand="<?= htmlspecialchars($p['brand']) ?>"
+            data-category="<?= htmlspecialchars($p['category']) ?>"
+            <?= $product_f == $p['id'] ? 'selected' : '' ?>>
+            <?= htmlspecialchars($p['name']) ?>
+          </option>
         <?php endforeach; ?>
       </select>
     </div>
@@ -254,7 +259,7 @@ require_once 'includes/header.php';
               <td class="mono"><?= $r['txn_type'] === 'sale' ? '–' : '+' ?><?= $r['quantity'] ?></td>
               <?php if (isAdmin()): ?>
                 <td class="mono"><?= money($r['unit_price']) ?></td>
-                <td class="mono <?= $r['txn_type'] === 'sale' ? 'accent-text' : ($r['txn_type'] === 'return' ? 'blue-text' : '') ?>"><?= money($r['total']) ?></td>
+                <td class="mono <?= $r['txn_type'] === 'sale' ? 'red-text' : ($r['txn_type'] === 'inflow' ? 'green-text' : 'blue-text') ?>"><?= money($r['total']) ?></td>
               <?php endif; ?>
               <td class="dim"><?= htmlspecialchars($r['party']) ?></td>
               <td class="dim small"><?= htmlspecialchars($r['extra'] ?: '—') ?></td>
@@ -268,14 +273,31 @@ require_once 'includes/header.php';
 
 <script>
   $(document).ready(function() {
-    $('.filter-form select').select2({
+    const $filterSelects = $('.filter-form select').select2({
       width: 'resolve',
       dropdownParent: $('#history-filter-container'),
       closeOnSelect: true
-    }).on('select2:open', function() {
+    });
+
+    $filterSelects.on('select2:open', function() {
       setTimeout(() => {
         document.querySelector('.select2-search__field').focus();
       }, 10);
+    });
+
+    // Cascading Logic for History Filters
+    $('select[name="brand"], select[name="category"]').on('change', function() {
+      const brand = $('select[name="brand"]').val();
+      const cat = $('select[name="category"]').val();
+      const $prodSelect = $('select[name="product"]');
+
+      $prodSelect.find('option').each(function() {
+        const b = $(this).data('brand');
+        const c = $(this).data('category');
+        const isMatch = (!brand || b === brand) && (!cat || c === cat);
+        $(this).prop('disabled', !isMatch && $(this).val() !== '');
+      });
+      $prodSelect.trigger('change.select2'); // Refresh UI
     });
   });
 </script>
