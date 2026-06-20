@@ -776,7 +776,7 @@ textarea { resize: vertical; }
 .search-box-wrapper .btn { 
   border-top-left-radius: 0; border-bottom-left-radius: 0; 
 }
-.filter-selects { display: flex; gap: 10px; flex-wrap: wrap; }
+.filter-selects { display: flex; gap: 10px; flex-wrap: wrap; position: relative; }
 .filter-tabs { 
   display: flex; gap: 4px; background: var(--surface-2); 
   padding: 4px; border-radius: var(--radius-sm); border: 1px solid var(--border);

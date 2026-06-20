@@ -364,6 +364,7 @@ echo renderToast($msg, $msg_type);
 <script>
   $(document).ready(function() {
     $('.select2-filter').select2({
+      dropdownParent: $('.filter-selects'),
       minimumResultsForSearch: 10,
       width: '150px',
       closeOnSelect: true
