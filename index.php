@@ -3,7 +3,8 @@
 require_once 'config.php';
 require_once 'auth.php';
 
-if (isLoggedIn()) {
+// If login is bypassed or user is already logged in, go straight to dashboard
+if ((defined('SKIP_LOGIN') && SKIP_LOGIN) || isLoggedIn()) {
   header("Location: dashboard.php");
   exit();
 }

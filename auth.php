@@ -3,11 +3,30 @@
 //  Khadilu Phone Hub — Auth Functions
 // =============================================
 
+// ┌─────────────────────────────────────────────┐
+// │  TEMPORARY LOGIN BYPASS FOR TESTING          │
+// │  Set to 'true' to skip login requirement.    │
+// │  Set to 'false' to re-enable login.          │
+// └─────────────────────────────────────────────┘
+define('SKIP_LOGIN', true);
+
+if (SKIP_LOGIN && !isset($_SESSION['khadilu_user_id'])) {
+    // Auto-authenticate as admin for full access during testing
+    if (session_status() === PHP_SESSION_NONE) { session_start(); }
+    $_SESSION['khadilu_user_id']    = 1;
+    $_SESSION['khadilu_username']   = 'admin';
+    $_SESSION['khadilu_full_name']  = 'Test Admin';
+    $_SESSION['khadilu_role']       = 'admin';
+    $_SESSION['khadilu_permissions'] = [];
+}
+
 function isLoggedIn() {
+    if (defined('SKIP_LOGIN') && SKIP_LOGIN) return true;
     return isset($_SESSION['khadilu_user_id']);
 }
 
 function requireLogin() {
+    if (defined('SKIP_LOGIN') && SKIP_LOGIN) return;
     if (!isLoggedIn()) {
         header("Location: index.php");
         exit();
