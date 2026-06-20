@@ -275,7 +275,6 @@ require_once 'includes/header.php';
   $(document).ready(function() {
     const $filterSelects = $('.filter-form select').select2({
       width: 'resolve',
-      dropdownParent: $('#history-filter-container'),
       closeOnSelect: true
     });
 
