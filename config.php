@@ -10,7 +10,7 @@ declare(strict_types=1);
 date_default_timezone_set('Africa/Lagos');
 
 // Security: Disable error display in production to prevent path leakage
-define('DEV_MODE', true); // Set to true to enable debugging
+define('DEV_MODE', false); // Set to true to enable debugging
 define('MAINTENANCE_MODE', false); // Set to true to restrict access to Admins only
 error_reporting(DEV_MODE ? E_ALL : 0);
 ini_set('display_errors', DEV_MODE ? 1 : 0);
@@ -172,6 +172,8 @@ function generateSKU($prefix = 'KH')
 function renderToast($msg, $type = 'success')
 {
     if (!$msg) return '';
+    // Basic sanitization to prevent XSS while allowing formatting and links
+    $msg = strip_tags((string)$msg, '<a><b><i><strong><em><br><span>');
     $html = '<div class="toast alert-' . $type . '" id="app-toast">';
     $html .= '<div>' . $msg . '</div>';
     $html .= '<div class="close-toast" onclick="this.parentElement.remove()">✕</div>';
