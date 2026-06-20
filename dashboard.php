@@ -51,6 +51,21 @@ for ($i = 6; $i >= 0; $i--) {
   $chart_values[] = (float)$val;
 }
 
+// Generate SVG sparkline points
+$max_val = max($chart_values) ?: 1;
+$sparkline_points = "";
+foreach($chart_values as $i => $val) {
+    $x = ($i / 6) * 100;
+    $y = 40 - (($val / $max_val) * 35) - 2; // Padding
+    $sparkline_points .= "$x,$y ";
+}
+$spark_svg = '
+<svg viewBox="0 0 100 40" preserveAspectRatio="none" style="position:absolute; bottom:0; left:0; width:100%; height:50px; opacity:0.2; z-index:0; pointer-events:none;">
+  <polyline points="'.$sparkline_points.'" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  <polygon points="0,40 '.$sparkline_points.' 100,40" fill="currentColor" opacity="0.15"/>
+</svg>';
+
+
 // Prepare low stock notification
 $notification = '';
 if ($out_of_stock > 0) {
@@ -85,37 +100,49 @@ if ($out_of_stock > 0) {
 <div class="stats-grid">
   <?php if (isAdmin()): ?>
     <a href="history.php?type=sales" class="stat-card accent" style="text-decoration:none;">
-      <div class="stat-icon">💰</div>
-      <div class="stat-label">Today's Gross</div>
-      <div class="stat-value" title="<?= money($today_revenue) ?>"><?= shortMoney($today_revenue) ?></div>
-      <div class="stat-sub"><?= $today_txn ?> sale<?= $today_txn != 1 ? 's' : '' ?> today</div>
+      <?= $spark_svg ?>
+      <div style="position:relative; z-index:1;">
+        <div class="stat-icon">💰</div>
+        <div class="stat-label">Today's Gross</div>
+        <div class="stat-value" title="<?= money($today_revenue) ?>"><?= shortMoney($today_revenue) ?></div>
+        <div class="stat-sub"><?= $today_txn ?> sale<?= $today_txn != 1 ? 's' : '' ?> today</div>
+      </div>
     </a>
     <a href="closing_report.php" class="stat-card" style="text-decoration:none;">
-      <div class="stat-icon">📊</div>
-      <div class="stat-label">Monthly Volume</div>
-      <div class="stat-value" title="<?= money($month_sales) ?>"><?= shortMoney($month_sales) ?></div>
-      <div class="stat-sub"><?= date('F Y') ?></div>
+      <?= $spark_svg ?>
+      <div style="position:relative; z-index:1;">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">Monthly Volume</div>
+        <div class="stat-value" title="<?= money($month_sales) ?>"><?= shortMoney($month_sales) ?></div>
+        <div class="stat-sub"><?= date('F Y') ?></div>
+      </div>
     </a>
   <?php endif; ?>
   <?php if (isAdmin()): ?>
     <a href="inventory.php" class="stat-card" style="text-decoration:none;">
-      <div class="stat-icon">📦</div>
-      <div class="stat-label">Stock Value</div>
-      <div class="stat-value" title="<?= money($inv_value) ?>"><?= shortMoney($inv_value) ?></div>
-      <div class="stat-sub"><?= number_format($total_stock) ?> units in stock</div>
+      <div style="position:relative; z-index:1;">
+        <div class="stat-icon">📦</div>
+        <div class="stat-label">Stock Value</div>
+        <div class="stat-value" title="<?= money($inv_value) ?>"><?= shortMoney($inv_value) ?></div>
+        <div class="stat-sub"><?= number_format($total_stock) ?> units in stock</div>
+      </div>
     </a>
     <a href="customers.php?filter=debt" class="stat-card danger" style="text-decoration:none;">
-      <div class="stat-icon">🛑</div>
-      <div class="stat-label">Total Debt</div>
-      <div class="stat-value" title="<?= money($total_debt) ?>"><?= shortMoney($total_debt) ?></div>
-      <div class="stat-sub">Outstanding Amount</div>
+      <div style="position:relative; z-index:1;">
+        <div class="stat-icon">🛑</div>
+        <div class="stat-label">Total Debt</div>
+        <div class="stat-value" title="<?= money($total_debt) ?>"><?= shortMoney($total_debt) ?></div>
+        <div class="stat-sub">Outstanding Amount</div>
+      </div>
     </a>
   <?php endif; ?>
   <div class="stat-card <?= $out_of_stock > 0 ? 'danger' : '' ?>">
-    <div class="stat-icon">⚠️</div>
-    <div class="stat-label">Products</div>
-    <div class="stat-value"><?= $total_products ?></div>
-    <div class="stat-sub"><?= $out_of_stock ?> out of stock</div>
+    <div style="position:relative; z-index:1;">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-label">Products</div>
+      <div class="stat-value"><?= $total_products ?></div>
+      <div class="stat-sub"><?= $out_of_stock ?> out of stock</div>
+    </div>
   </div>
 </div>
 
