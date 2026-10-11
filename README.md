@@ -36,7 +36,7 @@ Sign in with the credentials you just created.
 
 ---
 
-## 🗂 Features
+## Features
 
 | Feature | Description |
 |---|---|
@@ -49,7 +49,7 @@ Sign in with the credentials you just created.
 
 ---
 
-## 💡 Tips
+## Tips
 - The **margin column** in Inventory shows profit per unit and percentage
 - **Low stock badge** on the sidebar shows number of products running low
 - History page shows **gross profit** for any selected date range
@@ -57,10 +57,10 @@ Sign in with the credentials you just created.
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 - **Backend**: PHP 7.4+
 - **Database**: MySQL 5.7+ / MariaDB
 - **Frontend**: Vanilla HTML/CSS/JS (no framework needed)
 - **Fonts**: Syne, Nunito Sans, JetBrains Mono (Google Fonts)
 
-Built with ❤ for Khadilu Phone Hub.
+Built for Kadilu Phone Hub.
